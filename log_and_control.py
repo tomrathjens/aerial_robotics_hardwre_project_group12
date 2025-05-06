@@ -23,11 +23,20 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 Simple example that connects to the first Crazyflie found, logs the Stabilizer
-and prints it to the console. After 10s the application disconnects and exits.
+and prints it to the console. 
+
+The Crazyflie is controlled using the commander interface 
+
+Press q to Kill the drone in case of emergency
+
+After 50s the application disconnects and exits.
 """
 import logging
 import time
 from threading import Timer
+import threading
+
+from pynput import keyboard # Import the keyboard module for key press detection
 
 import cflib.crtp  # noqa
 from cflib.crazyflie import Crazyflie
@@ -44,7 +53,7 @@ logging.basicConfig(level=logging.ERROR)
 class LoggingExample:
     """
     Simple logging example class that logs the Stabilizer from a supplied
-    link uri and disconnects after 5s.
+    link uri and disconnects after 10s.
     """
 
     def __init__(self, link_uri):
@@ -98,8 +107,8 @@ class LoggingExample:
         except AttributeError:
             print('Could not add Stabilizer log config, bad configuration.')
 
-        # Start a timer to disconnect in 10s
-        t = Timer(10, self._cf.close_link)
+        # Start a timer to disconnect in 50s     TODO: CHANGE THIS TO YOUR NEEDS
+        t = Timer(50, self._cf.close_link)
         t.start()
 
     def _stab_log_error(self, logconf, msg):
@@ -108,10 +117,12 @@ class LoggingExample:
 
     def _stab_log_data(self, timestamp, data, logconf):
         """Callback from a the log API when data arrives"""
-        print(f'[{timestamp}][{logconf.name}]: ', end='')
-        for name, value in data.items():
-            print(f'{name}: {value:3.3f} ', end='')
-        print()
+
+        # Print the data to the console
+        # print(f'[{timestamp}][{logconf.name}]: ', end='')
+        # for name, value in data.items():
+        #     print(f'{name}: {value:3.3f} ', end='')
+        # print()
 
     def _connection_failed(self, link_uri, msg):
         """Callback when connection initial connection fails (i.e no Crazyflie
@@ -130,14 +141,66 @@ class LoggingExample:
         self.is_connected = False
 
 
+# Define your custom callback function
+def emergency_stop_callback(cf):
+    def on_press(key):
+        try:
+            if key.char == 'q':  # Check if the "space" key is pressed
+                print("Emergency stop triggered!")
+                cf.commander.send_stop_setpoint()  # Stop the Crazyflie
+                cf.close_link()  # Close the link to the Crazyflie
+                return False     # Stop the listener
+        except AttributeError:
+            pass
+
+    # Start listening for key presses
+    with keyboard.Listener(on_press=on_press) as listener:
+        listener.join()
+
 if __name__ == '__main__':
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
 
     le = LoggingExample(uri)
+    cf = le._cf
 
-    # The Crazyflie lib doesn't contain anything to keep the application alive,
-    # so this is where your application should do something. In our case we
-    # are just waiting until we are disconnected.
+    cf.param.set_value('kalman.resetEstimation', '1')
+    time.sleep(0.1)
+    cf.param.set_value('kalman.resetEstimation', '0')
+    time.sleep(2)
+
+    # Replace the thread creation with the updated function
+    emergency_stop_thread = threading.Thread(target=emergency_stop_callback, args=(cf,))
+    emergency_stop_thread.start()
+
+    # TODO : CHANGE THIS TO YOUR NEEDS
+    print("Starting control")
     while le.is_connected:
-        time.sleep(1)
+        time.sleep(0.01)
+        
+        # Take-off
+        for y in range(10):
+            cf.commander.send_hover_setpoint(0, 0, 0, y / 25)
+            time.sleep(0.1)
+        for _ in range(20):
+            cf.commander.send_hover_setpoint(0, 0, 0, 0.4)
+            time.sleep(0.1)
+
+        # Move 
+        for _ in range(50):
+            cf.commander.send_hover_setpoint(0, 0, 0, 0.4)
+            time.sleep(0.1)
+        for _ in range(50):
+            cf.commander.send_hover_setpoint(0, 0, 0, 0.4)
+            time.sleep(0.1)
+
+        # Land
+        for _ in range(20):
+            cf.commander.send_hover_setpoint(0, 0, 0, 0.4)
+            time.sleep(0.1)
+        for y in range(10):
+            cf.commander.send_hover_setpoint(0, 0, 0, (10 - y) / 25)
+            time.sleep(0.1)
+
+        cf.commander.send_stop_setpoint()
+        break
