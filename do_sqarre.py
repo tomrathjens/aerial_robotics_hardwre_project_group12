@@ -44,7 +44,7 @@ from cflib.crazyflie.log import LogConfig
 from cflib.utils import uri_helper
 
 # TODO: CHANGE THIS URI TO YOUR CRAZYFLIE & YOUR RADIO CHANNEL
-uri = uri_helper.uri_from_env(default='radio://0/100/2M/E7E7E7E720')
+uri = uri_helper.uri_from_env(default='radio://0/20/2M/E7E7E7E712')
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -177,7 +177,7 @@ if __name__ == '__main__':
     print("Starting control")
     while le.is_connected:
         time.sleep(0.01)
-        
+        print("Sending commands")
         # Take-off
         for y in range(10):
             cf.commander.send_hover_setpoint(0, 0, 0, y / 25)
@@ -186,12 +186,30 @@ if __name__ == '__main__':
             cf.commander.send_hover_setpoint(0, 0, 0, 0.4)
             time.sleep(0.1)
 
-        # Move 
-        for _ in range(50):
-            cf.commander.send_hover_setpoint(0, 0, 0, 0.4)
+        # Move qqq
+        # Bullshit function usefeless
+        # for _ in range(50):
+        #     cf.commander.send_hover_setpoint(0, 0, 0, 0.4)
+        #     time.sleep(0.1)
+        # for _ in range(50):
+        #     cf.commander.send_hover_setpoint(0, 0, 0, 0.4)
+        #     time.sleep(0.1)
+
+        # # Move like OG
+        for _ in range(20):
+            cf.commander.send_position_setpoint(0, 0.1 , 0.4, 0)
             time.sleep(0.1)
-        for _ in range(50):
-            cf.commander.send_hover_setpoint(0, 0, 0, 0.4)
+
+        for _ in range(20):
+            cf.commander.send_position_setpoint(0.1, 0.1 , 0.4, 0)
+            time.sleep(0.1)
+
+        for _ in range(20):
+            cf.commander.send_position_setpoint(0.1, -0.1 , 0.4, 0)
+            time.sleep(0.1)
+
+        for _ in range(20):
+            cf.commander.send_position_setpoint(0, -0.1 , 0.4, 0)
             time.sleep(0.1)
 
         # Land
