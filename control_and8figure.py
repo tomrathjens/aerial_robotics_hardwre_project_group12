@@ -44,7 +44,7 @@ from cflib.crazyflie.log import LogConfig
 from cflib.utils import uri_helper
 
 # TODO: CHANGE THIS URI TO YOUR CRAZYFLIE & YOUR RADIO CHANNEL
-uri = uri_helper.uri_from_env(default='radio://0/100/2M/E7E7E7E720')
+uri = uri_helper.uri_from_env(default='radio://0/20/2M/E7E7E7E712')
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
