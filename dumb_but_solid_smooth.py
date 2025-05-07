@@ -255,7 +255,6 @@ if __name__ == '__main__':
 
             for _ in range(ticks):
                 cf.commander.send_position_setpoint(x, y, z, yaw)
-                cf.commander.send_position_setpoint(x, y, z, yaw)
                 time.sleep(0.1)
             
 
