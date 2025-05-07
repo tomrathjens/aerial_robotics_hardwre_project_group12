@@ -2,8 +2,12 @@
 
 
 
-rmqs : 
+## rmqs : 
 - Pressing emergency stop or q, you will need to reboot the drone
 
-usefull links : 
-- https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/api/cflib/crazyflie/commander/
+## usefull links : 
+- Commander methods\
+https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/api/cflib/crazyflie/commander/
+
+- State estimates variables\
+ https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/api/logs/#stateestimatehttps://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/api/logs/#stateestimate
