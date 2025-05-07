@@ -45,8 +45,8 @@ from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.log import LogConfig
 from cflib.utils import uri_helper
 
-# TODO: CHANGE THIS URI TO YOUR CRAZYFLIE & YOUR RADIO CHANNEL
-uri = uri_helper.uri_from_env(default='radio://0/20/2M/E7E7E7E712')
+# # TODO: CHANGE THIS URI TO YOUR CRAZYFLIE & YOUR RADIO CHANNEL
+# uri = uri_helper.uri_from_env(default='radio://0/20/2M/E7E7E7E712')
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -70,19 +70,32 @@ after_take_off = [0,0,0.4,0]
 while nb_laps > 1:
     gates_in_order = gates_in_order + gates_in_order #repeat the gates in order nb_laps times
     nb_laps -= 1
+
 # add a start and an end to the path
 gates_in_order = [after_take_off] + gates_in_order #add the take off position at the beginning of the path
 gates_in_order = gates_in_order + [after_take_off] #add the take off position at the end of the path
 
-# Crate multiple points between the gates to make the path smoother
+# Create multiple points between the gates to make the path smoother and equidistant
 gates_in_order = np.array(gates_in_order)
 x, y, z = gates_in_order[:, 0], gates_in_order[:, 1], gates_in_order[:, 2]
+
 # Use B-spline to create a smooth path
-tck, u = splprep([x, y, z], s=0.01)  # `s` is the smoothing factor; increase for smoother curves
-u_fine = np.linspace(0, 1, nb_points)  # Fine parameter for desired points
+tck, u = splprep([x, y, z], s=0.0)  # `s` is the smoothing factor; increase for smoother curves
+u_fine = np.linspace(0, 1, 2000)  # Generate a dense set of points
 x_smooth, y_smooth, z_smooth = splev(u_fine, tck)
-waypoints = [] #list of waypoints to be filled in with the path to follow
-waypoints = [[x_smooth[i], y_smooth[i], z_smooth[i], 0] for i in range(len(x_smooth))]
+
+# Calculate cumulative distances along the path
+distances = np.cumsum(np.sqrt(np.diff(x_smooth)**2 + np.diff(y_smooth)**2 + np.diff(z_smooth)**2))
+distances = np.insert(distances, 0, 0)  # Add the starting point
+
+# Interpolate to get equidistant points
+equidistant_distances = np.linspace(0, distances[-1], nb_points)
+x_equidistant = np.interp(equidistant_distances, distances, x_smooth)
+y_equidistant = np.interp(equidistant_distances, distances, y_smooth)
+z_equidistant = np.interp(equidistant_distances, distances, z_smooth)
+
+# Create waypoints with yaw set to 0
+waypoints = [[x_equidistant[i], y_equidistant[i], z_equidistant[i], 0] for i in range(len(x_equidistant))]
 
 
 # Check distacne between waypoints
