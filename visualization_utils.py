@@ -3,17 +3,18 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D, art3d
 import numpy as np
 
-def visualize_gates(csv_file):
+def visualize_gates(csv_file, traj=None):
     """
     -------
     @ pars
     - csv_file : csv file (path) containing the gates infos in this fashion : Gate,x,y,z,theta,size
+    - traj : list of points (x, y, z) representing the trajectory (default: None)
     -------
     @ return
     - None
     -------
     @ brief
-    - 3D visualization of the gates' poses
+    - 3D visualization of the gates' poses and optional trajectory
     -------
     """
 
@@ -64,7 +65,6 @@ def visualize_gates(csv_file):
     
     # take-off (origin)
     ax.scatter(0, 0, 0, c='green', s=100, label='Take-off Pad')
-    # ax.text(0, 0, 0, 'Take-off Pad', color='green')
     
     # fixed XY plane at z=0
     x_grid = np.linspace(-2, 2, 10)
@@ -72,6 +72,12 @@ def visualize_gates(csv_file):
     x_grid, y_grid = np.meshgrid(x_grid, y_grid)
     z_grid = np.zeros_like(x_grid)
     ax.plot_wireframe(x_grid, y_grid, z_grid, color='gray', alpha=0.25, linewidth=0.5)
+    
+    # plot trajectory if provided
+    if traj is not None:
+        traj = np.array(traj)
+        ax.plot(traj[:, 0], traj[:, 1], traj[:, 2], c='orange', ls = ':', label='Trajectory', linewidth=2)
+        ax.scatter(traj[:, 0], traj[:, 1], traj[:, 2], c='orange', s=10)
     
     # plot pars
     ax.set_xlim([-2, 2]) 
@@ -88,6 +94,7 @@ def visualize_gates(csv_file):
     
     plt.show()
 
-# # usage
+# # example usage
 # csv_path = r".\gates doc\gates_info.csv"
-# visualize_gates(csv_path)
+# trajectory = [(0, 0, 0), (0.2, -0.1, 0.5), (0.5, -0.5, 1), (1, 0, 1.5)]
+# visualize_gates(csv_path, traj=trajectory)
