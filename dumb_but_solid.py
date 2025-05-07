@@ -55,14 +55,14 @@ logging.basicConfig(level=logging.ERROR)
 ################parameters to fill in ############
 nb_laps = 1 #number of laps to do
 time_bwn_points = 5 #time to wait between points of the path in seconds
-gate1 = [0.35, -0.50, 0.8, 0]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
-gate2 = [0.7, -0.50, 0.8, 0]
-gate3 = [1, -0.50, 0.8, 0]
-gate4 = [0, -0.50, 0.8, 0]
+gate1 = [0, 0.1 , 0.4, 0]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
+gate2 = [0.1, 0.1 , 0.4, 0]
+gate3 = [0.1, -0.1 , 0.4, 0]
+gate4 = [0, -0.1 , 0.4, 0]
 gates_in_order = [gate1, gate2, gate3, gate4]
 after_take_off = [0,0,0.4,0]
 #################################################
-while nb_laps > 0:
+while nb_laps > 1:
     gates_in_order = gates_in_order + gates_in_order #repeat the gates in order nb_laps times
     nb_laps -= 1
 # add a start and an end to the path
@@ -223,8 +223,11 @@ if __name__ == '__main__':
             # Move to the next point in the path
             x, y, z, yaw = points
             ticks = int(time_bwn_points / 0.1) #number of ticks to wait between points of the path
+
+            print("point : ", (x, y, z))
+
             for _ in range(ticks):
-                cf.commander.send_hover_setpoint(x, y, z, yaw)
+                cf.commander.send_position_setpoint(x, y, z, yaw)
                 time.sleep(0.1)
             
 
