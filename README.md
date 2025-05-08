@@ -10,4 +10,5 @@
 https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/api/cflib/crazyflie/commander/
 
 - State estimates variables\
- https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/api/logs/#stateestimatehttps://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/api/logs/#stateestimate
+ https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/api/logs/#stateestimate
+ 

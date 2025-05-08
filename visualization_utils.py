@@ -2,19 +2,23 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D, art3d
 import numpy as np
+import csv
+import os
 
-def visualize_gates(csv_file, traj=None):
+def visualize_gates(csv_file, traj=None, estimate_pose=None, show_estimate_traj=False):
     """
     -------
     @ pars
     - csv_file : csv file (path) containing the gates infos in this fashion : Gate,x,y,z,theta,size
-    - traj : list of points (x, y, z) representing the trajectory (default: None)
+    - traj : list of points (x, y, z) representing the target trajectory (default: None)
+    - estimate_pose : tuple (x,y,z,yaw) representing the estimate pose of the drone (default: None)
+    - show_estimate_traj : bool. Show the actual trajectory taken by the drone (default: False)
     -------
     @ return
     - None
     -------
     @ brief
-    - 3D visualization of the gates' poses and optional trajectory
+    - 3D visualization of the gates' poses and optional trajectory, 
     -------
     """
 
@@ -28,6 +32,9 @@ def visualize_gates(csv_file, traj=None):
     size = data['size']
     gate_numbers = data['Gate']
     
+
+    ## drone pose/traj estimates
+
 
     ## 3D plot
     fig = plt.figure()
@@ -94,7 +101,117 @@ def visualize_gates(csv_file, traj=None):
     
     plt.show()
 
+    return
+
 # # example usage
 # csv_path = r".\gates doc\gates_info.csv"
 # trajectory = [(0, 0, 0), (0.2, -0.1, 0.5), (0.5, -0.5, 1), (1, 0, 1.5)]
 # visualize_gates(csv_path, traj=trajectory)
+
+
+
+def create_gates_infos_csv(gates, name="current_gates_info.csv", path=None):
+    """
+    -------
+    @ pars
+    - gates : gates info in order. list of lists [[Gate,x,y,z,theta,size], ...]
+    - name : (optional) name of the file to be created (string)
+    - path : (optional) directory where the file should be created (string)
+    -------
+    @ return
+    - None
+    -------
+    @ brief
+    - create a .csv file containing the gates' info
+    -------
+    """
+
+    NB_GATES = 4
+    NB_INFO  = 6    # [Gate,x,y,z,theta,size]
+
+    # check existence and format
+    if gates is None:
+        print("Error : no gates.")
+        return
+
+    elif len(gates) != NB_GATES:
+        print("Error : incorrect gates' number.")
+        return
+
+    elif any(len(gate) != NB_INFO for gate in gates):
+        print("Error : incorrect gate format; must be [Gate,x,y,z,theta,size].")
+        return
+
+    # Determine file path
+    if path:
+        os.makedirs(path, exist_ok=True)  # Create the directory if it doesn't exist
+        file_path = os.path.join(path, name)
+    else:
+        file_path = name  # Use the current directory
+
+
+    # create csv file
+    try:
+        with open(file_path, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["Gate", "x", "y", "z", "theta", "size"])
+            writer.writerows(gates)
+        print(f"CSV file '{name}' created successfully.")
+
+    except Exception as e:
+        print(f"Error: unable to create CSV file. {e}")
+
+    return
+
+
+# # example usage
+# gates = [
+#     [1, 0, -0.2, 1, 0, 0.4],
+#     [2, 0.5, -0.5, 1.5, 1.57075, 0.4],
+#     [3, 1, 0, 0.8, 3.1415, 0.4],
+#     [4, -0.5, 0.5, 1.2, 0, 0.4]
+# ]
+
+# create_gates_infos_csv(gates, name="test1.csv", path=None)  # Creates in the current directory
+# create_gates_infos_csv(gates, name="test2.csv", path="gates doc")  # Creates in the 'gates doc' directory
+
+
+def correct_gate_format(gates):
+    """
+    -------
+    @ pars
+    - gates : gates info in order. list of lists [[x,y,z,theta], ...]
+    -------
+    @ return
+    - gates : gates info in order and correct format. list of lists [[Gate,x,y,z,theta,size], ...]
+    -------
+    @ brief
+    - convert simple gates info into correct format suitable to csv file
+    -------
+    """
+
+    NB_GATES     = 4
+    NB_INFO      = 4    # [x,y,z,theta]
+    DEFAULT_SIZE = 0.4  # [m]
+
+    # check existence and format
+    if gates is None:
+        print("Error : no gates.")
+        return gates
+
+    elif len(gates) != NB_GATES:
+        print("Error : incorrect gates' number.")
+        return gates
+
+    elif any(len(gate) != NB_INFO for gate in gates):
+        print("Error : incorrect gate format; must be [x,y,z,theta].")
+        return gates
+
+
+    # correct format
+    for i, gate in enumerate(gates):
+        gate = [i+1] + gate + [DEFAULT_SIZE]
+        gates[i] = gate
+
+    
+    return gates
