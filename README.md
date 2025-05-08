@@ -18,9 +18,9 @@
 
 - 2nd lap -> improve speed -> filter -> velocity control
 
-- nonlinear interpolation (waypoints)
+- nonlinear interpolation (waypoints), i.e. more points in tricky passages and less points elsewhere
 
-- take into account theta of gates when planning trajectory
+- take into account theta of gates when planning trajectory -> to avoid colliding into gates' frame
 
 
 ## usefull links : 

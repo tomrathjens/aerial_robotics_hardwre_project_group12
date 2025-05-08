@@ -34,7 +34,6 @@ def visualize_gates(csv_file, traj=None, estimate_pose=None, show_estimate_traj=
 
     FIGURE_NAME = "visualization"
 
-
     ## load CSV file and extract infos
     data = pd.read_csv(csv_file)
     
@@ -117,11 +116,11 @@ def visualize_gates(csv_file, traj=None, estimate_pose=None, show_estimate_traj=
 
     
     # plot pars
-    ax.set_xlim([-1.5, 1.5]) 
-    ax.set_ylim([-1.5, 1.5])
-    ax.set_zlim([0, max(z) + 1])
+    ax.set_xlim([-1, 3]) 
+    ax.set_ylim([-2, 2])
+    ax.set_zlim([0, max(z) + 0.5])
 
-    ax.view_init(elev=20, azim=-135, roll=0)
+    ax.view_init(elev=20, azim=120, roll=0)
 
     ax.set_xlabel('X [m]')
     ax.set_ylabel('Y [m]')
@@ -132,7 +131,7 @@ def visualize_gates(csv_file, traj=None, estimate_pose=None, show_estimate_traj=
     if close:
         plt.show(block=False)
         # plt.pause(0.001)
-        plt.close(fig)
+        plt.close(fig=FIGURE_NAME)
     else:
         plt.show()
     
@@ -147,19 +146,6 @@ def visualize_gates(csv_file, traj=None, estimate_pose=None, show_estimate_traj=
         print(f"Figure saved at: {savepath}")
 
     return
-
-
-# # example usage
-# csv_path = r".\gates doc\gates_info.csv"
-# trajectory = [(0, 0, 0), (0.2, -0.1, 0.5), (0.5, -0.5, 1), (1, 0, 1.5)]
-# current_pose = [(0.5, -0.5, 1, 1.57), (0.8, -0.5, 1, 1.7), (1.0, -0.7, 1.2, 1.9), (1.4, -0.9, 1.4, 1.9), (1.4, -1.2, 1.4, 2.0)]   # Example current pose (x, y, z, theta)
-
-# for i,pose in enumerate(current_pose):
-#     if i == len(current_pose)-1:
-#         visualize_gates(csv_path, traj=trajectory, estimate_pose=pose, show_estimate_traj=True, close=False)
-#     else:
-#         visualize_gates(csv_path, traj=trajectory, estimate_pose=pose, show_estimate_traj=True)
-
 
 
 
@@ -195,12 +181,12 @@ def create_gates_infos_csv(gates, name="current_gates_info.csv", path=None):
         print("Error : incorrect gate format; must be [Gate,x,y,z,theta,size].")
         return None
 
-    # Determine file path
+    # file path
     if path:
-        os.makedirs(path, exist_ok=True)  # Create the directory if it doesn't exist
+        os.makedirs(path, exist_ok=True)
         file_path = os.path.join(path, name)
     else:
-        file_path = name  # Use the current directory
+        file_path = name
 
 
     # create csv file
@@ -215,18 +201,6 @@ def create_gates_infos_csv(gates, name="current_gates_info.csv", path=None):
         print(f"Error: unable to create CSV file. {e}")
 
     return file_path
-
-
-# # example usage
-# gates = [
-#     [1, 0, -0.2, 1, 0, 0.4],
-#     [2, 0.5, -0.5, 1.5, 1.57075, 0.4],
-#     [3, 1, 0, 0.8, 3.1415, 0.4],
-#     [4, -0.5, 0.5, 1.2, 0, 0.4]
-# ]
-
-# create_gates_infos_csv(gates, name="test1.csv", path=None)  # Creates in the current directory
-# create_gates_infos_csv(gates, name="test2.csv", path="gates doc")  # Creates in the 'gates doc' directory
 
 
 
@@ -270,7 +244,13 @@ def correct_gate_format(gates):
     return gates
 
 
-nb_laps = 1 #number of laps to do
+
+
+
+
+##################################
+# example with computed trajectory
+
 nb_points = 50 #to adjust so that the space between points is around 0.1 m
 time_bwn_points = 1.5 #time to wait between points of the path in seconds
 gate1 = [1.15, -0.54, 0.79, 0]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
@@ -280,11 +260,6 @@ gate4 = [-0.7, 0.61, 1.65, np.deg2rad(270)]
 
 gates_in_order = [gate1, gate2, gate3, gate4]
 after_take_off = [0,0,0.4,0]
-
-#################################################
-while nb_laps > 1:
-    gates_in_order = gates_in_order + gates_in_order #repeat the gates in order nb_laps times
-    nb_laps -= 1
 
 # add a start and an end to the path
 gates_in_order = [after_take_off] + gates_in_order #add the take off position at the beginning of the path
