@@ -5,14 +5,18 @@ import numpy as np
 import csv
 import os
 
-def visualize_gates(csv_file, traj=None, estimate_pose=None, show_estimate_traj=False):
+
+def visualize_gates(csv_file, traj=None, estimate_pose=None, show_estimate_traj=False, close=True, save=False, savepath=None):
     """
     -------
     @ pars
     - csv_file : csv file (path) containing the gates infos in this fashion : Gate,x,y,z,theta,size
     - traj : list of points (x, y, z) representing the target trajectory (default: None)
-    - estimate_pose : tuple (x,y,z,yaw) representing the estimate pose of the drone (default: None)
-    - show_estimate_traj : bool. Show the actual trajectory taken by the drone (default: False)
+    - estimate_pose : tuple (x,y,z,theta) representing the estimate pose of the drone (default: None)
+    - show_estimate_traj : bool. Enable displaying the actual trajectory taken by the drone (default: False)
+    - close : bool. Close the figure window to prevent locking the code.
+    - save : bool. Enable saving the figure
+    - savepath : string. Path to save the figure
     -------
     @ return
     - None
@@ -21,6 +25,14 @@ def visualize_gates(csv_file, traj=None, estimate_pose=None, show_estimate_traj=
     - 3D visualization of the gates' poses and optional trajectory, 
     -------
     """
+    # ---- FUNCTION ATTRIBUTES ----
+    if not hasattr(visualize_gates, "initialized"):
+        visualize_gates.initialized = True
+        visualize_gates.drone_traj = []     # stored drone's poses
+
+
+    FIGURE_NAME = "visualization"
+
 
     ## load CSV file and extract infos
     data = pd.read_csv(csv_file)
@@ -33,11 +45,8 @@ def visualize_gates(csv_file, traj=None, estimate_pose=None, show_estimate_traj=
     gate_numbers = data['Gate']
     
 
-    ## drone pose/traj estimates
-
-
     ## 3D plot
-    fig = plt.figure()
+    fig = plt.figure(FIGURE_NAME)
     ax = fig.add_subplot(111, projection='3d')
     
     # gate position
@@ -80,11 +89,31 @@ def visualize_gates(csv_file, traj=None, estimate_pose=None, show_estimate_traj=
     z_grid = np.zeros_like(x_grid)
     ax.plot_wireframe(x_grid, y_grid, z_grid, color='gray', alpha=0.25, linewidth=0.5)
     
-    # plot trajectory if provided
+    # plot target trajectory if provided
     if traj is not None:
         traj = np.array(traj)
         ax.plot(traj[:, 0], traj[:, 1], traj[:, 2], c='orange', ls = ':', label='Trajectory', linewidth=2)
         ax.scatter(traj[:, 0], traj[:, 1], traj[:, 2], c='orange', s=10)
+    
+    # plot drone's current estimated pose if provided
+    if estimate_pose is not None:
+        # store pose
+        visualize_gates.drone_traj.append(estimate_pose)
+
+        # plot current pose with orientation
+        x_pose, y_pose, z_pose, theta_pose = estimate_pose
+        dx_pose = np.cos(theta_pose) * 0.2
+        dy_pose = np.sin(theta_pose) * 0.2
+        ax.quiver(x_pose, y_pose, z_pose, dx_pose, dy_pose, 0, color='purple')
+        ax.scatter(x_pose, y_pose, z_pose, c='purple', s=50, label='Drone Position')
+
+
+    # plot drone's estimated trajectory until now
+    if show_estimate_traj:
+        traj_array = np.array(visualize_gates.drone_traj)
+        ax.plot(traj_array[:, 0], traj_array[:, 1], traj_array[:, 2], c='cyan', label='Estimated Trajectory', linewidth=2)
+        ax.scatter(traj_array[:, 0], traj_array[:, 1], traj_array[:, 2], c='cyan', s=10)
+
     
     # plot pars
     ax.set_xlim([-2, 2]) 
@@ -99,14 +128,37 @@ def visualize_gates(csv_file, traj=None, estimate_pose=None, show_estimate_traj=
     ax.set_title('Gate poses visualization')
     ax.legend()
     
-    plt.show()
+    if close:
+        plt.show(block=False)
+        # plt.pause(0.001)
+        plt.close(fig)
+    else:
+        plt.show()
+    
+
+    # save figure
+    if save:
+        if savepath is None:
+            savepath = r".\visualization.svg"
+
+        os.makedirs(os.path.dirname(savepath), exist_ok=True)
+        plt.savefig(savepath)
+        print(f"Figure saved at: {savepath}")
 
     return
 
-# # example usage
-# csv_path = r".\gates doc\gates_info.csv"
-# trajectory = [(0, 0, 0), (0.2, -0.1, 0.5), (0.5, -0.5, 1), (1, 0, 1.5)]
-# visualize_gates(csv_path, traj=trajectory)
+
+# example usage
+csv_path = r".\gates doc\gates_info.csv"
+trajectory = [(0, 0, 0), (0.2, -0.1, 0.5), (0.5, -0.5, 1), (1, 0, 1.5)]
+current_pose = [(0.5, -0.5, 1, 1.57), (0.8, -0.5, 1, 1.7), (1.0, -0.7, 1.2, 1.9), (1.4, -0.9, 1.4, 1.9), (1.4, -1.2, 1.4, 2.0)]   # Example current pose (x, y, z, theta)
+
+for i,pose in enumerate(current_pose):
+    if i == len(current_pose)-1:
+        visualize_gates(csv_path, traj=trajectory, estimate_pose=pose, show_estimate_traj=True, close=False)
+    else:
+        visualize_gates(csv_path, traj=trajectory, estimate_pose=pose, show_estimate_traj=True)
+
 
 
 
@@ -176,6 +228,8 @@ def create_gates_infos_csv(gates, name="current_gates_info.csv", path=None):
 # create_gates_infos_csv(gates, name="test2.csv", path="gates doc")  # Creates in the 'gates doc' directory
 
 
+
+
 def correct_gate_format(gates):
     """
     -------
@@ -207,11 +261,9 @@ def correct_gate_format(gates):
         print("Error : incorrect gate format; must be [x,y,z,theta].")
         return gates
 
-
     # correct format
     for i, gate in enumerate(gates):
         gate = [i+1] + gate + [DEFAULT_SIZE]
         gates[i] = gate
-
     
     return gates
