@@ -63,10 +63,16 @@ gate2 = [2.16, 0.34, 1.15, 0]
 gate3 = [0.69, 1.14, 1.55, 0]
 gate4 = [-0.7, 0.61, 1.65, 0]
 
-gates_in_order = [gate1, gate2, gate3, gate4]
-after_take_off = [0,0,0.4,0]
 
+time_takeoff = 5 #time to take off in seconds
+height_takeoff = 0.4 #height of the drone
+
+pose_reached = 0.1 #distance to consider a waypoint as reached
 #################################################
+
+gates_in_order = [gate1, gate2, gate3, gate4]
+after_take_off = [0,0,height_takeoff,0]
+
 while nb_laps > 1:
     gates_in_order = gates_in_order + gates_in_order #repeat the gates in order nb_laps times
     nb_laps -= 1
@@ -111,6 +117,33 @@ if len(waypoints) > 1:
 
 
 #######################################
+# Fuctions 
+#######################################
+def get_next_waypoint(waypoints, pose_reached, current_position):
+    """
+    Dynamically updates the waypoints list by removing reached points and returning the next waypoint.
+    
+    Args:
+        waypoints: List of waypoints [x, y, z, yaw].
+        pose_reached: Distance threshold to consider a waypoint as reached.
+        current_position: Current position of the drone [x, y, z].
+    
+    Returns:
+        next_waypoint: The next waypoint to move to [x, y, z, yaw].
+    """
+    if not waypoints:
+        return None  # No waypoints left
+
+    # Check if the current waypoint is reached
+    distance_to_waypoint = np.linalg.norm(np.array(current_position[:3]) - np.array(waypoints[0][:3]))
+    if distance_to_waypoint < pose_reached:
+        waypoints.pop(0)  # Remove the reached waypoint
+
+    # Return the next waypoint if available
+    return waypoints[0] if waypoints else None
+
+
+#################################
 
 class LoggingExample:
     """
@@ -241,11 +274,19 @@ if __name__ == '__main__':
         time.sleep(0.01)
         print("Sending commands")
         # Take-off
-        for y in range(10):
-            cf.commander.send_hover_setpoint(0, 0, 0, y / 25)
+
+        ticks = int(time_takeoff / 0.1)  # Number of ticks to wait between points
+        magic_number = ticks / height_takeoff
+
+        # ex : takeoff in 5 seconds to 0.8m 
+        # 5 seconds = 50 ticks
+        # magic_number = 50 / 0.8 = 62.5
+
+        for y in range(ticks):
+            cf.commander.send_hover_setpoint(0, 0, 0, y / magic_number)
             time.sleep(0.1)
         for _ in range(20):
-            cf.commander.send_hover_setpoint(0, 0, 0, 0.4)
+            cf.commander.send_hover_setpoint(0, 0, 0, height_takeoff)
             time.sleep(0.1)
 
         # Move qqq
@@ -259,16 +300,30 @@ if __name__ == '__main__':
 
         # # Move like OG
 
-        for points in waypoints:
-            # Move to the next point in the path
-            x, y, z, yaw = points
-            ticks = int(time_bwn_points / 0.1) #number of ticks to wait between points of the path
+        while waypoints:
+            # Get the current position of the drone from the log data
+            log_data = le._lg_stab.data_received_cb  # Example of accessing log data
+            current_position = [
+                log_data['stateEstimate.x'],
+                log_data['stateEstimate.y'],
+                log_data['stateEstimate.z']
+            ]
 
-            print("point : ", (x, y, z))
+            # Get the next waypoint
+            next_waypoint = get_next_waypoint(waypoints, pose_reached, current_position)
 
-            for _ in range(ticks):
+            if next_waypoint:
+                x, y, z, yaw = next_waypoint
+                #ticks = int(time_bwn_points / 0.1)  # Number of ticks to wait between points
+
+                #print("Moving to waypoint:", (x, y, z))
+
+                #for _ in range(ticks):
                 cf.commander.send_position_setpoint(x, y, z, yaw)
-                time.sleep(0.1)
+                    #time.sleep(0.1)
+            else:
+                print("All waypoints reached.")
+                break
             
 
 
@@ -293,11 +348,17 @@ if __name__ == '__main__':
 
         # Land
         for _ in range(20):
-            cf.commander.send_hover_setpoint(0, 0, 0, 0.4)
+            cf.commander.send_hover_setpoint(0, 0, 0, height_takeoff)
             time.sleep(0.1)
-        for y in range(10):
-            cf.commander.send_hover_setpoint(0, 0, 0, (10 - y) / 25)
+
+        ticks = int(time_takeoff / 0.1)  # Number of ticks to wait between points
+        magic_number = ticks / height_takeoff
+
+        for y in range(ticks):
+            cf.commander.send_hover_setpoint(0, 0, 0, (ticks - y) / magic_number)
             time.sleep(0.1)
+
+  
 
         cf.commander.send_stop_setpoint()
         break
