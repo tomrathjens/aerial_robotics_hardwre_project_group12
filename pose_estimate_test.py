@@ -235,6 +235,62 @@ if __name__ == '__main__':
             time.sleep(0.1)
 
         break
-
     visu.visualize_gates(estimate_traj=traj, show_estimate_traj=True, close=False)
+
+    #     # Take-off
+    #     for y in range(10):
+    #         cf.commander.send_hover_setpoint(0, 0, 0, y / 50)
+    #         time.sleep(0.1)
+    #     for _ in range(20):
+    #         cf.commander.send_hover_setpoint(0, 0, 0, 0.2
+    #                                          )
+    #         time.sleep(0.1)
+
+    #     # Move qqq
+    #     # Bullshit function usefeless
+    #     # for _ in range(50):
+    #     #     cf.commander.send_hover_setpoint(0, 0, 0, 0.4)
+    #     #     time.sleep(0.1)
+    #     # for _ in range(50):
+    #     #     cf.commander.send_hover_setpoint(0, 0, 0, 0.4)
+    #     #     time.sleep(0.1)
+
+    #     # # Move like OG
+    #     for _ in range(20):
+    #         cf.commander.send_position_setpoint(0, 0.1 , 0.2, 0)
+    #         estimate_pose = [le.sensor_data["x"], le.sensor_data["y"], le.sensor_data["z"]]
+    #         traj.append(estimate_pose)
+    #         time.sleep(0.1)
+
+    #     for _ in range(20):
+    #         cf.commander.send_position_setpoint(0.1, 0.1 , 0.2, 0)
+    #         estimate_pose = [le.sensor_data["x"], le.sensor_data["y"], le.sensor_data["z"]]
+    #         traj.append(estimate_pose)
+    #         time.sleep(0.1)
+
+    #     for _ in range(20):
+    #         cf.commander.send_position_setpoint(0.1, -0.1 , 0.2, 0)
+    #         estimate_pose = [le.sensor_data["x"], le.sensor_data["y"], le.sensor_data["z"]]
+    #         traj.append(estimate_pose)
+    #         time.sleep(0.1)
+
+    #     for _ in range(20):
+    #         cf.commander.send_position_setpoint(0, -0.1 , 0.2, 0)
+    #         estimate_pose = [le.sensor_data["x"], le.sensor_data["y"], le.sensor_data["z"]]
+    #         traj.append(estimate_pose)
+    #         time.sleep(0.1)
+
+    #     # Land
+    #     for _ in range(20):
+    #         cf.commander.send_hover_setpoint(0, 0, 0, 0.2)
+    #         time.sleep(0.1)
+    #     for y in range(10):
+    #         cf.commander.send_hover_setpoint(0, 0, 0, (10 - y) / 50)
+    #         time.sleep(0.1)
+
+    #     cf.commander.send_stop_setpoint()
+    #     break
+
+    # target_traj = [(0, 0.1 , 0.2), (0.1, 0.1 , 0.2), (0.1, -0.1 , 0.2), (0, -0.1 , 0.2)]
+    # visu.visualize_gates(target_traj=target_traj, estimate_traj=traj, show_estimate_traj=True, close=False)
     
