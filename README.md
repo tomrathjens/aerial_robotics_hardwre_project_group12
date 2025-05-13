@@ -22,6 +22,22 @@
 
 - take into account theta of gates when planning trajectory -> to avoid colliding into gates' frame
 
+## presentation
+
+- length <= 4 slides
+
+- duration = 7 min
+
+- content :
+
+    - 1 slide on the gate setup for your experiment (Show environment layout(s) tested on)
+
+    - 1 slide on the strategy (Algorithm, what you spend most time on)
+
+    - 1 slide on the results (Statistics on mission time/success/…)
+
+    - 1 optional slide (with anything relevant to add)
+
 
 ## usefull links : 
 - Commander methods\
