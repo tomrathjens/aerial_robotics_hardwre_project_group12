@@ -40,6 +40,9 @@
 
 
 ## usefull links : 
+- google sheet book Dome room in MED
+https://docs.google.com/spreadsheets/d/1jxJD-PnUoYsJz4ouRZlyiNg_vVRUKn35aWl69dxFwjU/edit?gid=516969215#gid=516969215
+
 - Commander methods\
 https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/api/cflib/crazyflie/commander/
 
