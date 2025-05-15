@@ -29,4 +29,14 @@ https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/api
 
 - State estimates variables\
  https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/api/logs/#stateestimate
+
+
+
+
+ ## video 15.05 gates coordinates :
+gate1 = [0.6, -0.32, 0.75, 0]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
+gate2 = [2.09, 0.25, 1.29, 0]
+gate3 = [0.11, 0.93, 1.16, 0]
+gate4 = [-0.79, 0.4, 1.27, 0]
+
  

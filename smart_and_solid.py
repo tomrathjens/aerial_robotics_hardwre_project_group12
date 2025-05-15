@@ -35,6 +35,9 @@ import logging
 import time
 from threading import Timer
 import threading
+import numpy as np
+from scipy.interpolate import splprep, splev  # Import B-spline functions
+
 
 from pynput import keyboard # Import the keyboard module for key press detection
 
@@ -44,7 +47,7 @@ from cflib.crazyflie.log import LogConfig
 from cflib.utils import uri_helper
 
 # TODO: CHANGE THIS URI TO YOUR CRAZYFLIE & YOUR RADIO CHANNEL
-uri = uri_helper.uri_from_env(default='radio://0/70/2M/E7E7E7E717') #Example for group 17
+uri = uri_helper.uri_from_env(default='radio://0/20/2M/E7E7E7E712') #Example for group 17
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -52,19 +55,19 @@ logging.basicConfig(level=logging.ERROR)
 ####################################
 
 ################parameters to fill in ############
-nb_laps = 1 #number of laps to do
-nb_points = 100 #to adjust so that the space between points is around 0.1 m
-time_bwn_points = 0.08 #time to wait between points of the path in seconds
-gate1 = [1.15, -0.54, 0.79, 0]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
-gate2 = [2.16, 0.34, 1.15, 0]
-gate3 = [0.69, 1.14, 1.55, 0]
-gate4 = [-0.7, 0.61, 1.65, 0]
+nb_laps = 2 #number of laps to do
+nb_points = 36 #to adjust so that the space between points is around 0.1 m
+time_bwn_points = 0.1 #time to wait between points of the path in seconds
+gate1 = [0.6, -0.32, 0.75, 0]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
+gate2 = [2.09, 0.25, 1.29, 0]
+gate3 = [0.11, 0.93, 1.16, 0]
+gate4 = [-0.79, 0.4, 1.27, 0]
 
 
 time_takeoff = 5 #time to take off in seconds
-height_takeoff = 0.4 #height of the drone
+height_takeoff = 0.6 #height of the drone
 
-pose_reached = 0.1 #distance to consider a waypoint as reached
+pose_reached = 0.65 #distance to consider a waypoint as reached
 #################################################
 
 gates_in_order = [gate1, gate2, gate3, gate4]
@@ -313,11 +316,11 @@ if __name__ == '__main__':
     print("Starting control")
     while le.is_connected:
         time.sleep(0.01)
-        
+        print("Sending commands")
         # Take-off
         ticks = int(time_takeoff / 0.1)  # Number of ticks to wait between points
         magic_number = ticks / height_takeoff
-
+        print("magic calculated: ", magic_number)
         for y in range(ticks):
             cf.commander.send_hover_setpoint(0, 0, 0, y / magic_number)
             time.sleep(0.1)
