@@ -72,14 +72,14 @@ pose_reached = 0.4 #distance to consider a waypoint as reached
 
 gates_in_order = [gate1, gate2, gate3, gate4]
 after_take_off = [0,0,height_takeoff,0]
-
+last_point = [0,0,height_takeoff,0]
 while nb_laps > 1:
     gates_in_order = gates_in_order + gates_in_order #repeat the gates in order nb_laps times
     nb_laps -= 1
 
 # add a start and an end to the path
 gates_in_order = [after_take_off] + gates_in_order #add the take off position at the beginning of the path
-gates_in_order = gates_in_order + [after_take_off] #add the take off position at the end of the path
+gates_in_order = gates_in_order + [last_point] #add the take off position at the end of the path
 
 # Create multiple points between the gates to make the path smoother and equidistant
 gates_in_order = np.array(gates_in_order)
@@ -139,7 +139,7 @@ def get_next_waypoint(waypoints, pose_reached, current_position):
             break
 
     # Return the next waypoint if available
-    return waypoints[0] if waypoints else None
+    return waypoints[0] if waypoints else last_point
 
 
 #################################
