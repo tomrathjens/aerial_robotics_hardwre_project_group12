@@ -57,11 +57,11 @@ logging.basicConfig(level=logging.ERROR)
 ################parameters to fill in ############
 nb_laps = 1 #number of laps to do
 nb_points = 100 #to adjust so that the space between points is around 0.1 m
-time_bwn_points = 0.08 #time to wait between points of the path in seconds
-gate1 = [1.15, -0.54, 0.79, 0]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
-gate2 = [2.16, 0.34, 1.15, 0]
-gate3 = [0.69, 1.14, 1.55, 0]
-gate4 = [-0.7, 0.61, 1.65, 0]
+time_bwn_points = 0.1   #time to wait between points of the path in seconds
+gate1 = [0.6, -0.43, 0.79, 0]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
+gate2 = [2.09, 0.24, 1.27, 0]
+gate3 = [0.09, 0.91, 1.17, 0]
+gate4 = [-0.77, 0.23, 1.23, 0]
 
 gates_in_order = [gate1, gate2, gate3, gate4]
 after_take_off = [0,0,0.4,0]
