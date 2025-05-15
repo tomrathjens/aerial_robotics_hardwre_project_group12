@@ -56,7 +56,7 @@ logging.basicConfig(level=logging.ERROR)
 
 ################parameters to fill in ############
 nb_laps = 2 #number of laps to do
-nb_points = 36 #to adjust so that the space between points is around 0.1 m
+nb_points = 100 #to adjust so that the space between points is around 0.1 m
 time_bwn_points = 0.1 #time to wait between points of the path in seconds
 gate1 = [0.6, -0.32, 0.75, 0]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
 gate2 = [2.09, 0.25, 1.29, 0]
@@ -67,7 +67,7 @@ gate4 = [-0.79, 0.4, 1.27, 0]
 time_takeoff = 5 #time to take off in seconds
 height_takeoff = 0.6 #height of the drone
 
-pose_reached = 0.65 #distance to consider a waypoint as reached
+pose_reached = 0.4 #distance to consider a waypoint as reached
 #################################################
 
 gates_in_order = [gate1, gate2, gate3, gate4]
@@ -131,13 +131,12 @@ def get_next_waypoint(waypoints, pose_reached, current_position):
     Returns:
         next_waypoint: The next waypoint to move to [x, y, z, yaw].
     """
-    if not waypoints:
-        return None  # No waypoints left
-
-    # Check if the current waypoint is reached
-    distance_to_waypoint = np.linalg.norm(np.array(current_position[:3]) - np.array(waypoints[0][:3]))
-    if distance_to_waypoint < pose_reached:
-        waypoints.pop(0)  # Remove the reached waypoint
+    while waypoints:
+        distance_to_waypoint = np.linalg.norm(np.array(current_position[:3]) - np.array(waypoints[0][:3]))
+        if distance_to_waypoint < pose_reached:
+            waypoints.pop(0)
+        else:
+            break
 
     # Return the next waypoint if available
     return waypoints[0] if waypoints else None
