@@ -259,13 +259,33 @@ def correct_gate_format(gates):
 
 nb_points = 50 #to adjust so that the space between points is around 0.1 m
 time_bwn_points = 1.5 #time to wait between points of the path in seconds
-gate1 = [1.15, -0.54, 0.79, np.deg2rad(-110)]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
+gate1 = [1.15, -0.54, 0.79, np.deg2rad(-180)]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
 gate2 = [2.16, 0.34, 1.20, np.deg2rad(15)]
 gate3 = [0.69, 1.14, 1.55, np.deg2rad(85)]
 gate4 = [-0.7, 0.61, 1.65, np.deg2rad(210)]
 
 gates_in_order = [gate1, gate2, gate3, gate4]
 after_take_off = [0,0,0.4,0]
+
+
+def new_gate_segments(gate):
+
+    th = gate[3] + np.deg2rad(90)
+    l = 0.1
+
+    p2 = [gate[0] + l*np.cos(th), gate[1] + l*np.sin(th)]
+    p1 = [gate[0] - l*np.cos(th), gate[1] - l*np.sin(th)]
+
+    seg1 = p1 + gate[2:4]
+    seg2 = p2 + gate[2:4]
+
+    return [seg1, seg2]
+
+gates_segments = []
+for gate in gates_in_order:
+    gates_segments.extend(new_gate_segments(gate))
+
+gates_in_order = gates_segments
 
 # add a start and an end to the path
 gates_in_order = [after_take_off] + gates_in_order #add the take off position at the beginning of the path
@@ -297,4 +317,3 @@ waypoints = [[x_equidistant[i], y_equidistant[i], z_equidistant[i], 0] for i in 
 gates = correct_gate_format([gate1, gate2, gate3, gate4])
 csv_path = create_gates_infos_csv(gates)
 visualize_gates(csv_path, target_traj=waypoints, close=False)
-
