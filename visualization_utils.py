@@ -57,8 +57,8 @@ def visualize_gates(csv_file=None, target_traj=None, estimate_pose=None, estimat
         
         # orientation and size
         for i in range(len(data)):
-            dx = np.cos(theta[i]) * size[i] / 2
-            dy = np.sin(theta[i]) * size[i] / 2
+            dx = -np.sin(theta[i]) * size[i] / 2
+            dy = np.cos(theta[i]) * size[i] / 2
             ax.quiver(x[i], y[i], z[i], dx, dy, 0, color='red')
             
             half_size = size[i] / 2
@@ -70,8 +70,8 @@ def visualize_gates(csv_file=None, target_traj=None, estimate_pose=None, estimat
             ])
             
             rotation_matrix = np.array([
+                [-np.cos(theta[i]), np.sin(theta[i]), 0],
                 [-np.sin(theta[i]), -np.cos(theta[i]), 0],
-                [np.cos(theta[i]), -np.sin(theta[i]), 0],
                 [0, 0, 1]
             ])
             
@@ -255,46 +255,46 @@ def correct_gate_format(gates):
 
 
 ##################################
-# # example with computed trajectory
+# example with computed trajectory
 
-# nb_points = 50 #to adjust so that the space between points is around 0.1 m
-# time_bwn_points = 1.5 #time to wait between points of the path in seconds
-# gate1 = [1.15, -0.54, 0.79, 0]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
-# gate2 = [2.16, 0.34, 1.20, np.deg2rad(90)]
-# gate3 = [0.69, 1.14, 1.55, np.deg2rad(180)]
-# gate4 = [-0.7, 0.61, 1.65, np.deg2rad(270)]
+nb_points = 50 #to adjust so that the space between points is around 0.1 m
+time_bwn_points = 1.5 #time to wait between points of the path in seconds
+gate1 = [1.15, -0.54, 0.79, np.deg2rad(-110)]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
+gate2 = [2.16, 0.34, 1.20, np.deg2rad(15)]
+gate3 = [0.69, 1.14, 1.55, np.deg2rad(85)]
+gate4 = [-0.7, 0.61, 1.65, np.deg2rad(210)]
 
-# gates_in_order = [gate1, gate2, gate3, gate4]
-# after_take_off = [0,0,0.4,0]
+gates_in_order = [gate1, gate2, gate3, gate4]
+after_take_off = [0,0,0.4,0]
 
-# # add a start and an end to the path
-# gates_in_order = [after_take_off] + gates_in_order #add the take off position at the beginning of the path
-# gates_in_order = gates_in_order + [after_take_off] #add the take off position at the end of the path
+# add a start and an end to the path
+gates_in_order = [after_take_off] + gates_in_order #add the take off position at the beginning of the path
+gates_in_order = gates_in_order + [after_take_off] #add the take off position at the end of the path
 
-# # Create multiple points between the gates to make the path smoother and equidistant
-# gates_in_order = np.array(gates_in_order)
-# x, y, z = gates_in_order[:, 0], gates_in_order[:, 1], gates_in_order[:, 2]
+# Create multiple points between the gates to make the path smoother and equidistant
+gates_in_order = np.array(gates_in_order)
+x, y, z = gates_in_order[:, 0], gates_in_order[:, 1], gates_in_order[:, 2]
 
-# # Use B-spline to create a smooth path
-# tck, u = splprep([x, y, z], s=0.0)  # `s` is the smoothing factor; increase for smoother curves
-# u_fine = np.linspace(0, 1, 2000)  # Generate a dense set of points
-# x_smooth, y_smooth, z_smooth = splev(u_fine, tck)
+# Use B-spline to create a smooth path
+tck, u = splprep([x, y, z], s=0.0)  # `s` is the smoothing factor; increase for smoother curves
+u_fine = np.linspace(0, 1, 2000)  # Generate a dense set of points
+x_smooth, y_smooth, z_smooth = splev(u_fine, tck)
 
-# # Calculate cumulative distances along the path
-# distances = np.cumsum(np.sqrt(np.diff(x_smooth)**2 + np.diff(y_smooth)**2 + np.diff(z_smooth)**2))
-# distances = np.insert(distances, 0, 0)  # Add the starting point
+# Calculate cumulative distances along the path
+distances = np.cumsum(np.sqrt(np.diff(x_smooth)**2 + np.diff(y_smooth)**2 + np.diff(z_smooth)**2))
+distances = np.insert(distances, 0, 0)  # Add the starting point
 
-# # Interpolate to get equidistant points
-# equidistant_distances = np.linspace(0, distances[-1], nb_points)
-# x_equidistant = np.interp(equidistant_distances, distances, x_smooth)
-# y_equidistant = np.interp(equidistant_distances, distances, y_smooth)
-# z_equidistant = np.interp(equidistant_distances, distances, z_smooth)
+# Interpolate to get equidistant points
+equidistant_distances = np.linspace(0, distances[-1], nb_points)
+x_equidistant = np.interp(equidistant_distances, distances, x_smooth)
+y_equidistant = np.interp(equidistant_distances, distances, y_smooth)
+z_equidistant = np.interp(equidistant_distances, distances, z_smooth)
 
-# # Create waypoints with yaw set to 0
-# waypoints = [[x_equidistant[i], y_equidistant[i], z_equidistant[i], 0] for i in range(len(x_equidistant))]
+# Create waypoints with yaw set to 0
+waypoints = [[x_equidistant[i], y_equidistant[i], z_equidistant[i], 0] for i in range(len(x_equidistant))]
 
 
-# gates = correct_gate_format([gate1, gate2, gate3, gate4])
-# csv_path = create_gates_infos_csv(gates)
-# visualize_gates(csv_path, target_traj=waypoints, close=False)
+gates = correct_gate_format([gate1, gate2, gate3, gate4])
+csv_path = create_gates_infos_csv(gates)
+visualize_gates(csv_path, target_traj=waypoints, close=False)
 
