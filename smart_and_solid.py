@@ -37,6 +37,7 @@ from threading import Timer
 import threading
 import numpy as np
 from scipy.interpolate import splprep, splev  # Import B-spline functions
+import visualization_utils as visu
 
 
 from pynput import keyboard # Import the keyboard module for key press detection
@@ -58,10 +59,11 @@ logging.basicConfig(level=logging.ERROR)
 nb_laps = 2 #number of laps to do
 nb_points = 100 #to adjust so that the space between points is around 0.1 m
 time_bwn_points = 0.1 #time to wait between points of the path in seconds
-gate1 = [0.6, -0.32, 0.75, 0]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
-gate2 = [2.09, 0.25, 1.29, 0]
-gate3 = [0.11, 0.93, 1.16, 0]
-gate4 = [-0.79, 0.4, 1.27, 0]
+# gate1 = [0.6, -0.32, 0.75, 0]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
+# gate2 = [2.09, 0.25, 1.29, 0]
+# gate3 = [0.11, 0.93, 1.16, 0]
+# gate4 = [-0.79, 0.4, 1.27, 0]
+gates_csv_file = r".\gates.csv"
 
 
 time_takeoff = 5 #time to take off in seconds
@@ -70,7 +72,28 @@ height_takeoff = 0.6 #height of the drone
 pose_reached = 0.4 #distance to consider a waypoint as reached
 #################################################
 
-gates_in_order = [gate1, gate2, gate3, gate4]
+def new_gate_segments(gate, l=0.1):
+    th = gate[3] + np.deg2rad(90)
+
+    p2 = [gate[0] + l*np.cos(th), gate[1] + l*np.sin(th)]
+    p1 = [gate[0] - l*np.cos(th), gate[1] - l*np.sin(th)]
+
+    seg1 = p1 + gate[2:4]
+    seg2 = p2 + gate[2:4]
+
+    return [seg1, seg2]
+
+
+# gates_in_order = [gate1, gate2, gate3, gate4]
+gates_in_order = visu.extract_gates_from_csv(gates_csv_file, format='waypoints')
+
+gates_segments = []
+for gate in gates_in_order:
+    gates_segments.extend(new_gate_segments(gate))
+
+gates_in_order = gates_segments
+
+
 after_take_off = [0,0,height_takeoff,0]
 last_point = [0,0,height_takeoff,0]
 while nb_laps > 1:
@@ -312,6 +335,10 @@ if __name__ == '__main__':
     emergency_stop_thread.start()
 
     # TODO : CHANGE THIS TO YOUR NEEDS
+    print("plotting trajectory")
+    visu.visualize_gates(csv_file=gates_csv_file, target_traj=waypoints, close=False)
+
+
     print("Starting control")
     while le.is_connected:
         time.sleep(0.01)
