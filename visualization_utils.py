@@ -7,7 +7,59 @@ import os
 from scipy.interpolate import splprep, splev
 
 
-def visualize_gates(csv_file=None, target_traj=None, estimate_pose=None, estimate_traj=None, show_estimate_traj=False, close=True, save=False, savepath=None):
+def extract_gates_from_csv(csv_file, format='visu'):
+    """
+    -------
+    @ pars
+    - csv_file : csv file (path) containing the gates infos in this fashion : Gate,x,y,z,theta,size
+    - format : format of return variable. 'visu' : dictionnary, suitable for visualization function.
+                                          'waypoints' : list of list [x,y,z,theta], suitable for computing the waypoints
+    -------
+    @ return
+    - gates : dictionnary or list (depends on the mode) containing the 4 gates of the race
+    -------
+    @ brief
+    - extract the gates poses from the csv file 
+    -------
+    """
+
+    if csv_file is None:
+        print("Error : no file provided.")
+        return None
+    
+    data = pd.read_csv(csv_file)
+
+
+    gates = data.to_dict(orient='list')
+
+    # # Correct theta
+    # for i,y in enumerate(gates['y']):
+    #     if y < 0:
+    #         gates['theta'][i] -= np.deg2rad(180)
+    
+    if format == 'visu':
+        return gates
+
+    if format == 'waypoints':
+        gates_waypoints = []
+        for i in range(len(gates['Gate'])):
+            gates_waypoints.append([gates['x'][i], gates['y'][i], gates['z'][i], gates['theta'][i]])
+
+        return gates_waypoints
+    
+    return None
+
+
+
+def visualize_gates(csv_file=None,
+                    target_traj=None,
+                    estimate_pose=None,
+                    estimate_traj=None,
+                    show_estimate_traj=False,
+                    close=True,
+                    save=False,
+                    savepath=None
+                    ):
     """
     -------
     @ pars
@@ -37,15 +89,15 @@ def visualize_gates(csv_file=None, target_traj=None, estimate_pose=None, estimat
 
     ## load CSV file and extract infos
     if csv_file is not None:
-        data = pd.read_csv(csv_file)
+        gates = extract_gates_from_csv(csv_file)
         
-        x = data['x']
-        y = data['y']
-        z = data['z']
-        theta = data['theta']
-        size = data['size']
-        gate_numbers = data['Gate']
-    
+        gate_numbers = gates['Gate']
+        x = gates['x']
+        y = gates['y']
+        z = gates['z']
+        theta = gates['theta']
+        size = gates['size']
+
 
     ## 3D plot
     fig = plt.figure(FIGURE_NAME)
@@ -56,7 +108,7 @@ def visualize_gates(csv_file=None, target_traj=None, estimate_pose=None, estimat
         ax.scatter(x, y, z, c='blue', label='Gates')
         
         # orientation and size
-        for i in range(len(data)):
+        for i in range(len(gate_numbers)):
             dx = -np.sin(theta[i]) * size[i] / 2
             dy = np.cos(theta[i]) * size[i] / 2
             ax.quiver(x[i], y[i], z[i], dx, dy, 0, color='red')
@@ -257,21 +309,24 @@ def correct_gate_format(gates):
 ##################################
 # example with computed trajectory
 
-nb_points = 50 #to adjust so that the space between points is around 0.1 m
+nb_points = 100 #to adjust so that the space between points is around 0.1 m
 time_bwn_points = 1.5 #time to wait between points of the path in seconds
-gate1 = [1.15, -0.54, 0.79, np.deg2rad(-180)]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
-gate2 = [2.16, 0.34, 1.20, np.deg2rad(15)]
-gate3 = [0.69, 1.14, 1.55, np.deg2rad(85)]
-gate4 = [-0.7, 0.61, 1.65, np.deg2rad(210)]
+# gate1 = [1.15, -0.54, 0.79, np.deg2rad(-180)]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
+# gate2 = [2.16, 0.34, 1.20, np.deg2rad(15)]
+# gate3 = [0.69, 1.14, 1.55, np.deg2rad(85)]
+# gate4 = [-0.7, 0.61, 1.65, np.deg2rad(210)]
 
-gates_in_order = [gate1, gate2, gate3, gate4]
+# gates_in_order = [gate1, gate2, gate3, gate4]
+
+csv_file = r".\gates.csv"
+gates_in_order = extract_gates_from_csv(csv_file, format='waypoints')
+
 after_take_off = [0,0,0.4,0]
 
 
-def new_gate_segments(gate):
+def new_gate_segments(gate, l=0.1):
 
     th = gate[3] + np.deg2rad(90)
-    l = 0.1
 
     p2 = [gate[0] + l*np.cos(th), gate[1] + l*np.sin(th)]
     p1 = [gate[0] - l*np.cos(th), gate[1] - l*np.sin(th)]
@@ -288,7 +343,7 @@ for gate in gates_in_order:
 gates_in_order = gates_segments
 
 # add a start and an end to the path
-gates_in_order = [after_take_off] + gates_in_order #add the take off position at the beginning of the path
+gates_in_order = [after_take_off] + gates_in_order + gates_in_order #add the take off position at the beginning of the path
 gates_in_order = gates_in_order + [after_take_off] #add the take off position at the end of the path
 
 # Create multiple points between the gates to make the path smoother and equidistant
@@ -314,6 +369,5 @@ z_equidistant = np.interp(equidistant_distances, distances, z_smooth)
 waypoints = [[x_equidistant[i], y_equidistant[i], z_equidistant[i], 0] for i in range(len(x_equidistant))]
 
 
-gates = correct_gate_format([gate1, gate2, gate3, gate4])
-csv_path = create_gates_infos_csv(gates)
-visualize_gates(csv_path, target_traj=waypoints, close=False)
+csv_file = r".\gates.csv"
+visualize_gates(csv_file, target_traj=waypoints, close=False)
