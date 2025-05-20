@@ -36,43 +36,50 @@ import time
 from threading import Timer
 import threading
 import numpy as np
+from scipy.interpolate import splprep, splev  # Import B-spline functions
+
 
 from pynput import keyboard # Import the keyboard module for key press detection
-from scipy.interpolate import splprep, splev
 
 import cflib.crtp  # noqa
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.log import LogConfig
 from cflib.utils import uri_helper
 
-# # TODO: CHANGE THIS URI TO YOUR CRAZYFLIE & YOUR RADIO CHANNEL
-uri = uri_helper.uri_from_env(default='radio://0/20/2M/E7E7E7E712')
+# TODO: CHANGE THIS URI TO YOUR CRAZYFLIE & YOUR RADIO CHANNEL
+uri = uri_helper.uri_from_env(default='radio://0/20/2M/E7E7E7E712') #Example for group 17
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
-
 ####################################
 
 ################parameters to fill in ############
-nb_laps = 1 #number of laps to do
+nb_laps = 2 #number of laps to do
 nb_points = 100 #to adjust so that the space between points is around 0.1 m
-time_bwn_points = 0.1   #time to wait between points of the path in seconds
-gate1 = [0.6, -0.43, 0.79, 0]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
-gate2 = [2.09, 0.24, 1.27, 0]
-gate3 = [0.09, 0.91, 1.17, 0]
-gate4 = [-0.77, 0.23, 1.23, 0]
+time_bwn_points = 0.1 #time to wait between points of the path in seconds
+gate1 = [0.6, -0.32, 0.75, 0]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
+gate2 = [2.09, 0.25, 1.29, 0]
+gate3 = [0.11, 0.93, 1.16, 0]
+gate4 = [-0.79, 0.4, 1.27, 0]
+
+
+time_takeoff = 5 #time to take off in seconds
+height_takeoff = 0.6 #height of the drone
+
+pose_reached = 0.4 #distance to consider a waypoint as reached
+#################################################
 
 gates_in_order = [gate1, gate2, gate3, gate4]
 after_take_off = [0,0,height_takeoff,0]
-
+last_point = [0,0,height_takeoff,0]
 while nb_laps > 1:
     gates_in_order = gates_in_order + gates_in_order #repeat the gates in order nb_laps times
     nb_laps -= 1
 
 # add a start and an end to the path
 gates_in_order = [after_take_off] + gates_in_order #add the take off position at the beginning of the path
-gates_in_order = gates_in_order + [after_take_off] #add the take off position at the end of the path
+gates_in_order = gates_in_order + [last_point] #add the take off position at the end of the path
 
 # Create multiple points between the gates to make the path smoother and equidistant
 gates_in_order = np.array(gates_in_order)
@@ -124,16 +131,15 @@ def get_next_waypoint(waypoints, pose_reached, current_position):
     Returns:
         next_waypoint: The next waypoint to move to [x, y, z, yaw].
     """
-    if not waypoints:
-        return None  # No waypoints left
-
-    # Check if the current waypoint is reached
-    distance_to_waypoint = np.linalg.norm(np.array(current_position[:3]) - np.array(waypoints[0][:3]))
-    if distance_to_waypoint < pose_reached:
-        waypoints.pop(0)  # Remove the reached waypoint
+    while waypoints:
+        distance_to_waypoint = np.linalg.norm(np.array(current_position[:3]) - np.array(waypoints[0][:3]))
+        if distance_to_waypoint < pose_reached:
+            waypoints.pop(0)
+        else:
+            break
 
     # Return the next waypoint if available
-    return waypoints[0] if waypoints else None
+    return waypoints[0] if waypoints else last_point
 
 
 #################################
@@ -149,6 +155,8 @@ class LoggingExample:
 
         self._cf = Crazyflie(rw_cache='./cache')
 
+        self.prev_z_ = [None, None, None, None, None]
+
         # Connect some callbacks from the Crazyflie API
         self._cf.connected.add_callback(self._connected)
         self._cf.disconnected.add_callback(self._disconnected)
@@ -162,6 +170,22 @@ class LoggingExample:
 
         # Variable used to keep main loop occupied until disconnect
         self.is_connected = True
+
+        # Init states variables
+        self.sensor_data = {}
+
+        self.sensor_data['t'] = 0
+        self.sensor_data["x"] = 0
+        self.sensor_data["y"] = 0
+        self.sensor_data["z"] = 0
+        self.sensor_data["yaw"] = 0
+
+        # Accumulators for smoothing / hand detection 
+        self.accumulator_z = [0]*10
+
+        # Boolean states
+        self.emergency_stop = False
+        self.block_callback = False 
 
     def _connected(self, link_uri):
         """ This callback is called form the Crazyflie API when a Crazyflie
@@ -206,11 +230,31 @@ class LoggingExample:
     def _stab_log_data(self, timestamp, data, logconf):
         """Callback from a the log API when data arrives"""
 
-        # Print the data to the console
-        # print(f'[{timestamp}][{logconf.name}]: ', end='')
+        # Print the data to the console to see what the Logger is getting !
+        #print(f'[{timestamp}][{logconf.name}]: ', end='')
         # for name, value in data.items():
         #     print(f'{name}: {value:3.3f} ', end='')
         # print()
+
+        # Store the state estimate data you need in a dictionary
+        if not(self.block_callback):
+            self.block_callback = True  # Prevents the callback from being called again while processing
+
+            # Update the other states
+            for name, value in data.items():
+                if name == 'stateEstimate.x':
+                    self.sensor_data['x'] = value
+                if name == 'stateEstimate.y':
+                    self.sensor_data['y'] = value
+                if name == 'stateEstimate.z':
+                    self.sensor_data['z'] = value
+                    # Update the accumulator
+                    self.accumulator_z.append(value)
+                    self.accumulator_z.pop(0)
+                if name == 'stabilizer.yaw':
+                    self.sensor_data['yaw'] = value
+
+            self.block_callback = False
 
     def _connection_failed(self, link_uri, msg):
         """Callback when connection initial connection fails (i.e no Crazyflie
@@ -230,13 +274,14 @@ class LoggingExample:
 
 
 # Define your custom callback function
-def emergency_stop_callback(cf):
+def emergency_stop_callback(le):
+    cf = le._cf  # Access the Crazyflie instance from the LoggingExample
+    
     def on_press(key):
         try:
             if key.char == 'q':  # Check if the "space" key is pressed
                 print("Emergency stop triggered!")
-                cf.commander.send_stop_setpoint()  # Stop the Crazyflie
-                cf.close_link()  # Close the link to the Crazyflie
+                le.emergency_stop = True
                 return False     # Stop the listener
         except AttributeError:
             pass
@@ -244,6 +289,11 @@ def emergency_stop_callback(cf):
     # Start listening for key presses
     with keyboard.Listener(on_press=on_press) as listener:
         listener.join()
+
+    # Send the stop setpoint to the Crazyflie if the emergency stop is triggered
+    if le.emergency_stop:
+        cf.commander.send_stop_setpoint()
+        cf.close_link()
 
 if __name__ == '__main__':
     # Initialize the low-level drivers
@@ -258,7 +308,7 @@ if __name__ == '__main__':
     time.sleep(2)
 
     # Replace the thread creation with the updated function
-    emergency_stop_thread = threading.Thread(target=emergency_stop_callback, args=(cf,))
+    emergency_stop_thread = threading.Thread(target=emergency_stop_callback, args=(le,))
     emergency_stop_thread.start()
 
     # TODO : CHANGE THIS TO YOUR NEEDS
@@ -267,14 +317,9 @@ if __name__ == '__main__':
         time.sleep(0.01)
         print("Sending commands")
         # Take-off
-
         ticks = int(time_takeoff / 0.1)  # Number of ticks to wait between points
         magic_number = ticks / height_takeoff
-
-        # ex : takeoff in 5 seconds to 0.8m 
-        # 5 seconds = 50 ticks
-        # magic_number = 50 / 0.8 = 62.5
-
+        print("magic calculated: ", magic_number)
         for y in range(ticks):
             cf.commander.send_hover_setpoint(0, 0, 0, y / magic_number)
             time.sleep(0.1)
@@ -282,25 +327,12 @@ if __name__ == '__main__':
             cf.commander.send_hover_setpoint(0, 0, 0, height_takeoff)
             time.sleep(0.1)
 
-        # Move qqq
-        # Bullshit function usefeless
-        # for _ in range(50):
-        #     cf.commander.send_hover_setpoint(0, 0, 0, 0.4)
-        #     time.sleep(0.1)
-        # for _ in range(50):
-        #     cf.commander.send_hover_setpoint(0, 0, 0, 0.4)
-        #     time.sleep(0.1)
-
-        # # Move like OG
-
+        # Move 
         while waypoints:
             # Get the current position of the drone from the log data
-            log_data = le._lg_stab.data_received_cb  # Example of accessing log data
-            current_position = [
-                log_data['stateEstimate.x'],
-                log_data['stateEstimate.y'],
-                log_data['stateEstimate.z']
-            ]
+            #log_data = le._lg_stab.data_received_cb  # Example of accessing log data
+            current_position = [le.sensor_data['x'], le.sensor_data['y'], le.sensor_data['z'], le.sensor_data['yaw']]
+  
 
             # Get the next waypoint
             next_waypoint = get_next_waypoint(waypoints, pose_reached, current_position)
@@ -317,27 +349,6 @@ if __name__ == '__main__':
             else:
                 print("All waypoints reached.")
                 break
-            
-
-
-
-
-
-        # for _ in range(20):
-        #     cf.commander.send_position_setpoint(0, 0.1 , 0.4, 0)
-        #     time.sleep(0.1)
-
-        # for _ in range(20):
-        #     cf.commander.send_position_setpoint(0.1, 0.1 , 0.4, 0)
-        #     time.sleep(0.1)
-
-        # for _ in range(20):
-        #     cf.commander.send_position_setpoint(0.1, -0.1 , 0.4, 0)
-        #     time.sleep(0.1)
-
-        # for _ in range(20):
-        #     cf.commander.send_position_setpoint(0, -0.1 , 0.4, 0)
-        #     time.sleep(0.1)
 
         # Land
         for _ in range(20):
@@ -350,8 +361,6 @@ if __name__ == '__main__':
         for y in range(ticks):
             cf.commander.send_hover_setpoint(0, 0, 0, (ticks - y) / magic_number)
             time.sleep(0.1)
-
-  
 
         cf.commander.send_stop_setpoint()
         break
