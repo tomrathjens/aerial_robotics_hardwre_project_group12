@@ -70,6 +70,8 @@ time_takeoff = 5 #time to take off in seconds
 height_takeoff = 0.6 #height of the drone
 
 pose_reached = 0.4 #distance to consider a waypoint as reached
+
+estimate_traj = []
 #################################################
 
 def new_gate_segments(gate, l=0.1):
@@ -335,8 +337,8 @@ if __name__ == '__main__':
     emergency_stop_thread.start()
 
     # TODO : CHANGE THIS TO YOUR NEEDS
-    print("plotting trajectory")
-    visu.visualize_gates(csv_file=gates_csv_file, target_traj=waypoints, close=False)
+    # print("plotting trajectory")
+    # visu.visualize_gates(csv_file=gates_csv_file, target_traj=waypoints, close=False)
 
 
     print("Starting control")
@@ -359,7 +361,7 @@ if __name__ == '__main__':
             # Get the current position of the drone from the log data
             #log_data = le._lg_stab.data_received_cb  # Example of accessing log data
             current_position = [le.sensor_data['x'], le.sensor_data['y'], le.sensor_data['z'], le.sensor_data['yaw']]
-  
+            estimate_traj.append(current_position[:2])
 
             # Get the next waypoint
             next_waypoint = get_next_waypoint(waypoints, pose_reached, current_position)
@@ -385,9 +387,13 @@ if __name__ == '__main__':
         ticks = int(time_takeoff / 0.1)  # Number of ticks to wait between points
         magic_number = ticks / height_takeoff
 
+        
+
         for y in range(ticks):
             cf.commander.send_hover_setpoint(0, 0, 0, (ticks - y) / magic_number)
             time.sleep(0.1)
+
+        visu.visualize_gates(csv_file=gates_csv_file, close=False, estimate_traj=estimate_traj)
 
         cf.commander.send_stop_setpoint()
         break

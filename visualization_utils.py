@@ -309,7 +309,7 @@ def correct_gate_format(gates):
 ##################################
 # example with computed trajectory
 
-nb_points = 100 #to adjust so that the space between points is around 0.1 m
+nb_points = 200 #to adjust so that the space between points is around 0.1 m
 time_bwn_points = 1.5 #time to wait between points of the path in seconds
 # gate1 = [1.15, -0.54, 0.79, np.deg2rad(-180)]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
 # gate2 = [2.16, 0.34, 1.20, np.deg2rad(15)]
