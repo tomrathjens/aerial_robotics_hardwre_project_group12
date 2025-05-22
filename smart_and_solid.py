@@ -67,14 +67,14 @@ gates_csv_file = r".\gates.csv"
 
 
 time_takeoff = 5 #time to take off in seconds
-height_takeoff = 0.7 #height of the drone
+height_takeoff = 0.8 #height of the drone
 
 pose_reached = 0.7 #distance to consider a waypoint as reached
 
 estimate_traj = []
 #################################################
 
-def new_gate_segments(gate, l=0.1):
+def new_gate_segments(gate, l=0.15):
     th = gate[3] + np.deg2rad(90)
 
     p2 = [gate[0] + l*np.cos(th), gate[1] + l*np.sin(th)]
@@ -395,7 +395,7 @@ if __name__ == '__main__':
             cf.commander.send_hover_setpoint(0, 0, 0, (ticks - y) / magic_number)
             time.sleep(0.1)
 
-        visu.visualize_gates(csv_file=gates_csv_file, close=False, estimate_traj=estimate_traj)
+        visu.visualize_gates(csv_file=gates_csv_file, close=False, estimate_traj=estimate_traj, show_estimate_traj=True)
 
         cf.commander.send_stop_setpoint()
         break
