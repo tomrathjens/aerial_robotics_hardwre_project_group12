@@ -158,10 +158,12 @@ if __name__ == '__main__':
     with open(fp,'w',newline='') as f:
         w=csv.writer(f); w.writerow(['Gate','x','y','z','theta','size']); w.writerows(gates)
     waypoints, traj = ensure_cone_passages(start, gates, end, csv_file=fp, nb_points=1000)
+    final_path = compute_bspline_trajectory(waypoints, 100)
+    final_path_points = [[p[0], p[1], p[2], 0] for p in final_path]
     visualize_gates(csv_file=fp, target_traj=traj, waypoints=waypoints, close=False)
-    output_path = os.path.join(os.path.dirname(__file__), 'final_waypoints.txt')
+    output_path = os.path.join(os.path.dirname(__file__), 'final_path_points.txt')
     with open(output_path, 'w') as f:
-        for wp in waypoints:
-            f.write(f"{wp[0]:.4f}, {wp[1]:.4f}, {wp[2]:.4f}, {wp[3]:.4f}\n")
-
-    print(f"Waypoints saved to: {output_path}")
+        f.write("waypoints = [\n")
+        for p in final_path_points:
+            f.write(f"    [{p[0]:.4f}, {p[1]:.4f}, {p[2]:.4f}, {p[3]}],\n")
+        f.write("]\n")
