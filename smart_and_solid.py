@@ -361,7 +361,7 @@ if __name__ == '__main__':
             # Get the current position of the drone from the log data
             #log_data = le._lg_stab.data_received_cb  # Example of accessing log data
             current_position = [le.sensor_data['x'], le.sensor_data['y'], le.sensor_data['z'], le.sensor_data['yaw']]
-            estimate_traj.append(current_position[:2])
+            estimate_traj.append(current_position)
 
             # Get the next waypoint
             next_waypoint = get_next_waypoint(waypoints, pose_reached, current_position)
