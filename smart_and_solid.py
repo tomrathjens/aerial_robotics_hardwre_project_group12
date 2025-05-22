@@ -57,7 +57,7 @@ logging.basicConfig(level=logging.ERROR)
 
 ################parameters to fill in ############
 nb_laps = 2 #number of laps to do
-nb_points = 100 #to adjust so that the space between points is around 0.1 m
+nb_points = 200 #to adjust so that the space between points is around 0.1 m
 time_bwn_points = 0.1 #time to wait between points of the path in seconds
 # gate1 = [0.6, -0.32, 0.75, 0]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
 # gate2 = [2.09, 0.25, 1.29, 0]
@@ -67,14 +67,14 @@ gates_csv_file = r".\gates.csv"
 
 
 time_takeoff = 5 #time to take off in seconds
-height_takeoff = 0.6 #height of the drone
+height_takeoff = 0.8 #height of the drone
 
-pose_reached = 0.4 #distance to consider a waypoint as reached
+pose_reached = 0.7 #distance to consider a waypoint as reached
 
 estimate_traj = []
 #################################################
 
-def new_gate_segments(gate, l=0.1):
+def new_gate_segments(gate, l=0.15):
     th = gate[3] + np.deg2rad(90)
 
     p2 = [gate[0] + l*np.cos(th), gate[1] + l*np.sin(th)]
@@ -381,7 +381,9 @@ if __name__ == '__main__':
 
         # Land
         for _ in range(20):
-            cf.commander.send_hover_setpoint(0, 0, 0, height_takeoff)
+            current_position = [le.sensor_data['x'], le.sensor_data['y'], le.sensor_data['z'], le.sensor_data['yaw']]
+            estimate_traj.append(current_position)
+            cf.commander.send_position_setpoint(0, 0, height_takeoff, 0)
             time.sleep(0.1)
 
         ticks = int(time_takeoff / 0.1)  # Number of ticks to wait between points
@@ -393,7 +395,7 @@ if __name__ == '__main__':
             cf.commander.send_hover_setpoint(0, 0, 0, (ticks - y) / magic_number)
             time.sleep(0.1)
 
-        visu.visualize_gates(csv_file=gates_csv_file, close=False, estimate_traj=estimate_traj)
+        visu.visualize_gates(csv_file=gates_csv_file, close=False, estimate_traj=estimate_traj, show_estimate_traj=True)
 
         cf.commander.send_stop_setpoint()
         break
