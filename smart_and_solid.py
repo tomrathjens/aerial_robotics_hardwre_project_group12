@@ -347,10 +347,10 @@ if __name__ == '__main__':
         print("Sending commands")
         # Take-off
         ticks = int(time_takeoff / 0.1)  # Number of ticks to wait between points
-        magic_number = ticks / height_takeoff
-        print("magic calculated: ", magic_number)
+        ticks_per_height = ticks / height_takeoff
+        print("ticks_per_height calculated: ", ticks_per_height)
         for y in range(ticks):
-            cf.commander.send_hover_setpoint(0, 0, 0, y / magic_number)
+            cf.commander.send_hover_setpoint(0, 0, 0, y / ticks_per_height)
             time.sleep(0.1)
         for _ in range(20):
             cf.commander.send_hover_setpoint(0, 0, 0, height_takeoff)
@@ -371,10 +371,8 @@ if __name__ == '__main__':
                 #ticks = int(time_bwn_points / 0.1)  # Number of ticks to wait between points
 
                 #print("Moving to waypoint:", (x, y, z))
-
-                #for _ in range(ticks):
                 cf.commander.send_position_setpoint(x, y, z, yaw)
-                    #time.sleep(0.1)
+                    
             else:
                 print("All waypoints reached.")
                 break
@@ -387,12 +385,10 @@ if __name__ == '__main__':
             time.sleep(0.1)
 
         ticks = int(time_takeoff / 0.1)  # Number of ticks to wait between points
-        magic_number = ticks / height_takeoff
-
-        
+        ticks_per_height = ticks / height_takeoff
 
         for y in range(ticks):
-            cf.commander.send_hover_setpoint(0, 0, 0, (ticks - y) / magic_number)
+            cf.commander.send_hover_setpoint(0, 0, 0, (ticks - y) / ticks_per_height)
             time.sleep(0.1)
 
         visu.visualize_gates(csv_file=gates_csv_file, close=False, estimate_traj=estimate_traj, show_estimate_traj=True)
