@@ -321,7 +321,7 @@ time_bwn_points = 1.5 #time to wait between points of the path in seconds
 csv_file = r".\gates.csv"
 gates_in_order = extract_gates_from_csv(csv_file, format='waypoints')
 
-after_take_off = [0,0,0.4,0]
+after_take_off = [0,0,1,0]
 
 
 def new_gate_segments(gate, l=0.1):
