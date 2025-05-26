@@ -1,10 +1,17 @@
+"""
+Util file for visualization.
+
+Provide a 3D plot of the target trajectory as well as the estimated trajectory of the drone using its sensors.
+
+Contains also some util functions to read the .csv file with the gates data.
+"""
+
 import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D, art3d
 import numpy as np
 import csv
 import os
-from scipy.interpolate import splprep, splev
 
 
 def extract_gates_from_csv(csv_file, format='visu'):
@@ -306,68 +313,69 @@ def correct_gate_format(gates):
 
 
 
-##################################
-# example with computed trajectory
+# ##################################
+# # example with computed trajectory
+# from scipy.interpolate import splprep, splev
 
-nb_points = 200 #to adjust so that the space between points is around 0.1 m
-time_bwn_points = 1.5 #time to wait between points of the path in seconds
-# gate1 = [1.15, -0.54, 0.79, np.deg2rad(-180)]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
-# gate2 = [2.16, 0.34, 1.20, np.deg2rad(15)]
-# gate3 = [0.69, 1.14, 1.55, np.deg2rad(85)]
-# gate4 = [-0.7, 0.61, 1.65, np.deg2rad(210)]
+# nb_points = 200 #to adjust so that the space between points is around 0.1 m
+# time_bwn_points = 1.5 #time to wait between points of the path in seconds
+# # gate1 = [1.15, -0.54, 0.79, np.deg2rad(-180)]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
+# # gate2 = [2.16, 0.34, 1.20, np.deg2rad(15)]
+# # gate3 = [0.69, 1.14, 1.55, np.deg2rad(85)]
+# # gate4 = [-0.7, 0.61, 1.65, np.deg2rad(210)]
 
-# gates_in_order = [gate1, gate2, gate3, gate4]
+# # gates_in_order = [gate1, gate2, gate3, gate4]
 
-csv_file = r".\gates.csv"
-gates_in_order = extract_gates_from_csv(csv_file, format='waypoints')
+# csv_file = r".\gates.csv"
+# gates_in_order = extract_gates_from_csv(csv_file, format='waypoints')
 
-after_take_off = [0,0,1,0]
-
-
-def new_gate_segments(gate, l=0.1):
-
-    th = gate[3] + np.deg2rad(90)
-
-    p2 = [gate[0] + l*np.cos(th), gate[1] + l*np.sin(th)]
-    p1 = [gate[0] - l*np.cos(th), gate[1] - l*np.sin(th)]
-
-    seg1 = p1 + gate[2:4]
-    seg2 = p2 + gate[2:4]
-
-    return [seg1, seg2]
-
-gates_segments = []
-for gate in gates_in_order:
-    gates_segments.extend(new_gate_segments(gate))
-
-gates_in_order = gates_segments
-
-# add a start and an end to the path
-gates_in_order = [after_take_off] + gates_in_order + gates_in_order #add the take off position at the beginning of the path
-gates_in_order = gates_in_order + [after_take_off] #add the take off position at the end of the path
-
-# Create multiple points between the gates to make the path smoother and equidistant
-gates_in_order = np.array(gates_in_order)
-x, y, z = gates_in_order[:, 0], gates_in_order[:, 1], gates_in_order[:, 2]
-
-# Use B-spline to create a smooth path
-tck, u = splprep([x, y, z], s=0.0)  # `s` is the smoothing factor; increase for smoother curves
-u_fine = np.linspace(0, 1, 2000)  # Generate a dense set of points
-x_smooth, y_smooth, z_smooth = splev(u_fine, tck)
-
-# Calculate cumulative distances along the path
-distances = np.cumsum(np.sqrt(np.diff(x_smooth)**2 + np.diff(y_smooth)**2 + np.diff(z_smooth)**2))
-distances = np.insert(distances, 0, 0)  # Add the starting point
-
-# Interpolate to get equidistant points
-equidistant_distances = np.linspace(0, distances[-1], nb_points)
-x_equidistant = np.interp(equidistant_distances, distances, x_smooth)
-y_equidistant = np.interp(equidistant_distances, distances, y_smooth)
-z_equidistant = np.interp(equidistant_distances, distances, z_smooth)
-
-# Create waypoints with yaw set to 0
-waypoints = [[x_equidistant[i], y_equidistant[i], z_equidistant[i], 0] for i in range(len(x_equidistant))]
+# after_take_off = [0,0,0.4,0]
 
 
-csv_file = r".\gates.csv"
-visualize_gates(csv_file, target_traj=waypoints, close=False)
+# def new_gate_segments(gate, l=0.1):
+
+#     th = gate[3] + np.deg2rad(90)
+
+#     p2 = [gate[0] + l*np.cos(th), gate[1] + l*np.sin(th)]
+#     p1 = [gate[0] - l*np.cos(th), gate[1] - l*np.sin(th)]
+
+#     seg1 = p1 + gate[2:4]
+#     seg2 = p2 + gate[2:4]
+
+#     return [seg1, seg2]
+
+# gates_segments = []
+# for gate in gates_in_order:
+#     gates_segments.extend(new_gate_segments(gate))
+
+# gates_in_order = gates_segments
+
+# # add a start and an end to the path
+# gates_in_order = [after_take_off] + gates_in_order + gates_in_order #add the take off position at the beginning of the path
+# gates_in_order = gates_in_order + [after_take_off] #add the take off position at the end of the path
+
+# # Create multiple points between the gates to make the path smoother and equidistant
+# gates_in_order = np.array(gates_in_order)
+# x, y, z = gates_in_order[:, 0], gates_in_order[:, 1], gates_in_order[:, 2]
+
+# # Use B-spline to create a smooth path
+# tck, u = splprep([x, y, z], s=0.0)  # `s` is the smoothing factor; increase for smoother curves
+# u_fine = np.linspace(0, 1, 2000)  # Generate a dense set of points
+# x_smooth, y_smooth, z_smooth = splev(u_fine, tck)
+
+# # Calculate cumulative distances along the path
+# distances = np.cumsum(np.sqrt(np.diff(x_smooth)**2 + np.diff(y_smooth)**2 + np.diff(z_smooth)**2))
+# distances = np.insert(distances, 0, 0)  # Add the starting point
+
+# # Interpolate to get equidistant points
+# equidistant_distances = np.linspace(0, distances[-1], nb_points)
+# x_equidistant = np.interp(equidistant_distances, distances, x_smooth)
+# y_equidistant = np.interp(equidistant_distances, distances, y_smooth)
+# z_equidistant = np.interp(equidistant_distances, distances, z_smooth)
+
+# # Create waypoints with yaw set to 0
+# waypoints = [[x_equidistant[i], y_equidistant[i], z_equidistant[i], 0] for i in range(len(x_equidistant))]
+
+
+# csv_file = r".\gates.csv"
+# visualize_gates(csv_file, target_traj=waypoints, close=False)
