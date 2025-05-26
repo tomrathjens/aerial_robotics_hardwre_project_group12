@@ -147,10 +147,10 @@ if __name__ == '__main__':
     start = [0,0,0.4]; end = [0,0,0.4]
     cone_size = 0.25
     gates = [
-        [1, 1.15, -0.54, 0.79, np.deg2rad(-170), cone_size],
-        [2, 2.16,  0.34, 1.20, np.deg2rad(116),   cone_size],
-        [3, 0.69,  1.14, 1.0, np.deg2rad(85),   cone_size],
-        [4,-0.7,   0.61, 1.65, np.deg2rad(210),  cone_size]
+        [1, 1.15, -0.54, 0.79, np.deg2rad(-69), cone_size],
+        [2, 2.16,  0.34, 1.20, np.deg2rad(50),   cone_size],
+        [3, 0.69,  1.14, 2.0, np.deg2rad(85),   cone_size],
+        [4,-0.7,   0.61, 1.65, np.deg2rad(192),  cone_size]
     ]
 
     formatted = correct_gate_format([[g[1],g[2],g[3],g[4]] for g in gates])
@@ -161,9 +161,9 @@ if __name__ == '__main__':
     final_path = compute_bspline_trajectory(waypoints, 100)
     final_path_points = [[p[0], p[1], p[2], 0] for p in final_path]
     visualize_gates(csv_file=fp, target_traj=traj, waypoints=waypoints, close=False)
-    output_path = os.path.join(os.path.dirname(__file__), 'final_path_points.txt')
-    with open(output_path, 'w') as f:
-        f.write("waypoints = [\n")
-        for p in final_path_points:
-            f.write(f"    [{p[0]:.4f}, {p[1]:.4f}, {p[2]:.4f}, {p[3]}],\n")
-        f.write("]\n")
+    #output_path = os.path.join(os.path.dirname(__file__), 'final_path_points.txt')
+    #with open(output_path, 'w') as f:
+    #    f.write("waypoints = [\n")
+    #    for p in final_path_points:
+    #        f.write(f"    [{p[0]:.4f}, {p[1]:.4f}, {p[2]:.4f}, {p[3]}],\n")
+    #    f.write("]\n")
