@@ -353,7 +353,9 @@ if __name__ == '__main__':
     emergency_stop_thread = threading.Thread(target=emergency_stop_callback, args=(le,))
     emergency_stop_thread.start()
 
-
+    # visualize target trajectory
+    print("Ploting target trajectory")
+    visu.visualize_gates(csv_file=gates_csv_file, target_traj=waypoints, close=False)
 
     print("Starting control")
     while le.is_connected:
