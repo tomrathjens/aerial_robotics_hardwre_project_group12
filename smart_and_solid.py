@@ -53,16 +53,14 @@ uri = uri_helper.uri_from_env(default='radio://0/20/2M/E7E7E7E712') #Example for
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
-####################################
 
-################parameters to fill in ############
+#######################################
+# Parameters 
+#######################################
+
 nb_laps = 2 #number of laps to do
-nb_points = 200 #to adjust so that the space between points is around 0.1 m
-time_bwn_points = 0.1 #time to wait between points of the path in seconds
-# gate1 = [0.6, -0.32, 0.75, 0]  # x, y, z, yaw coordinates of the first gate relative to the starting point of the drone
-# gate2 = [2.09, 0.25, 1.29, 0]
-# gate3 = [0.11, 0.93, 1.16, 0]
-# gate4 = [-0.79, 0.4, 1.27, 0]
+nb_points = 200 #to adjust 
+
 gates_csv_file = r".\gates.csv"
 
 
@@ -71,75 +69,7 @@ height_takeoff = 0.8 #height of the drone
 
 pose_reached = 0.7 #distance to consider a waypoint as reached
 
-estimate_traj = []
-#################################################
-
-def new_gate_segments(gate, l=0.15):
-    th = gate[3] + np.deg2rad(90)
-
-    p2 = [gate[0] + l*np.cos(th), gate[1] + l*np.sin(th)]
-    p1 = [gate[0] - l*np.cos(th), gate[1] - l*np.sin(th)]
-
-    seg1 = p1 + gate[2:4]
-    seg2 = p2 + gate[2:4]
-
-    return [seg1, seg2]
-
-
-# gates_in_order = [gate1, gate2, gate3, gate4]
-gates_in_order = visu.extract_gates_from_csv(gates_csv_file, format='waypoints')
-
-gates_segments = []
-for gate in gates_in_order:
-    gates_segments.extend(new_gate_segments(gate))
-
-gates_in_order = gates_segments
-
-
-after_take_off = [0,0,height_takeoff,0]
-last_point = [0,0,height_takeoff,0]
-while nb_laps > 1:
-    gates_in_order = gates_in_order + gates_in_order #repeat the gates in order nb_laps times
-    nb_laps -= 1
-
-# add a start and an end to the path
-gates_in_order = [after_take_off] + gates_in_order #add the take off position at the beginning of the path
-gates_in_order = gates_in_order + [last_point] #add the take off position at the end of the path
-
-# Create multiple points between the gates to make the path smoother and equidistant
-gates_in_order = np.array(gates_in_order)
-x, y, z = gates_in_order[:, 0], gates_in_order[:, 1], gates_in_order[:, 2]
-
-# Use B-spline to create a smooth path
-tck, u = splprep([x, y, z], s=0.0)  # `s` is the smoothing factor; increase for smoother curves
-u_fine = np.linspace(0, 1, 2000)  # Generate a dense set of points
-x_smooth, y_smooth, z_smooth = splev(u_fine, tck)
-
-# Calculate cumulative distances along the path
-distances = np.cumsum(np.sqrt(np.diff(x_smooth)**2 + np.diff(y_smooth)**2 + np.diff(z_smooth)**2))
-distances = np.insert(distances, 0, 0)  # Add the starting point
-
-# Interpolate to get equidistant points
-equidistant_distances = np.linspace(0, distances[-1], nb_points)
-x_equidistant = np.interp(equidistant_distances, distances, x_smooth)
-y_equidistant = np.interp(equidistant_distances, distances, y_smooth)
-z_equidistant = np.interp(equidistant_distances, distances, z_smooth)
-
-# Create waypoints with yaw set to 0
-waypoints = [[x_equidistant[i], y_equidistant[i], z_equidistant[i], 0] for i in range(len(x_equidistant))]
-
-
-# Check distacne between waypoints
-if len(waypoints) > 1:
-                total_distance = 0
-                for i in range(len(waypoints) - 1):
-                    point_a = np.array(waypoints[i][:3])
-                    point_b = np.array(waypoints[i + 1][:3])
-                    total_distance += np.linalg.norm(point_b - point_a)
-                average_distance = total_distance / (len(waypoints) - 1)
-                print(f"Average distance between points: {average_distance:.3f} m")
-
-
+distance_before_after_gates = 0.15 #distance before and after the gates to add to the path
 
 #######################################
 # Fuctions 
@@ -165,6 +95,93 @@ def get_next_waypoint(waypoints, pose_reached, current_position):
 
     # Return the next waypoint if available
     return waypoints[0] if waypoints else last_point
+
+def new_gate_segments(gate, l=0.15):
+    """
+    Generates two segments before and after a gate, offset perpendicularly to the gate's orientation.
+
+    Args:
+        gate: List representing the gate [x, y, z, yaw] (yaw in radians).
+        l: Offset distance before/after the gate (default 0.15 m).
+
+    Returns:
+        segments: List of two points [x, y, z, yaw] corresponding to the positions before and after the gate.
+    """
+    th = gate[3] + np.deg2rad(90)
+
+    p2 = [gate[0] + l*np.cos(th), gate[1] + l*np.sin(th)]
+    p1 = [gate[0] - l*np.cos(th), gate[1] - l*np.sin(th)]
+
+    seg1 = p1 + gate[2:4]
+    seg2 = p2 + gate[2:4]
+
+    return [seg1, seg2]
+
+
+#######################################
+# Path planning 
+#######################################
+
+estimate_traj = []
+
+# gates_in_order = [gate1, gate2, gate3, gate4]
+gates_in_order = visu.extract_gates_from_csv(gates_csv_file, format='waypoints')
+
+# add points before and after the gates to the path
+gates_segments = []
+for gate in gates_in_order:
+    gates_segments.extend(new_gate_segments(gate, l=distance_before_after_gates))
+
+gates_in_order = gates_segments
+
+
+# Adjust the number of laps by repeating the gates in order
+while nb_laps > 1:
+    gates_in_order = gates_in_order + gates_in_order #repeat the gates in order nb_laps times
+    nb_laps -= 1
+
+# Add the take-off position at the beginning of the path
+after_take_off = [0,0,height_takeoff,0]
+last_point = [0,0,height_takeoff,0]
+gates_in_order = [after_take_off] + gates_in_order #add the take off position at the beginning of the path
+gates_in_order = gates_in_order + [last_point] #add the take off position at the end of the path
+
+# Create multiple points between the gates to make the path smoother 
+gates_in_order = np.array(gates_in_order)
+x, y, z = gates_in_order[:, 0], gates_in_order[:, 1], gates_in_order[:, 2]
+
+# Use B-spline to create a smooth path
+tck, u = splprep([x, y, z], s=0.0)  # `s` is the smoothing factor; increase for smoother curves
+u_fine = np.linspace(0, 1, 2000)  # Generate a dense set of points
+x_smooth, y_smooth, z_smooth = splev(u_fine, tck)
+
+# Calculate cumulative distances along the path
+distances = np.cumsum(np.sqrt(np.diff(x_smooth)**2 + np.diff(y_smooth)**2 + np.diff(z_smooth)**2))
+distances = np.insert(distances, 0, 0)  # Add the starting point
+
+# Interpolate to get equidistant points along the path
+equidistant_distances = np.linspace(0, distances[-1], nb_points)
+x_equidistant = np.interp(equidistant_distances, distances, x_smooth)
+y_equidistant = np.interp(equidistant_distances, distances, y_smooth)
+z_equidistant = np.interp(equidistant_distances, distances, z_smooth)
+
+# Create waypoints with yaw set to 0
+waypoints = [[x_equidistant[i], y_equidistant[i], z_equidistant[i], 0] for i in range(len(x_equidistant))]
+
+
+# Check distacne between waypoints for user information 
+if len(waypoints) > 1:
+                total_distance = 0
+                for i in range(len(waypoints) - 1):
+                    point_a = np.array(waypoints[i][:3])
+                    point_b = np.array(waypoints[i + 1][:3])
+                    total_distance += np.linalg.norm(point_b - point_a)
+                average_distance = total_distance / (len(waypoints) - 1)
+                print(f"Average distance between points: {average_distance:.3f} m")
+
+
+
+
 
 
 #################################
@@ -336,9 +353,6 @@ if __name__ == '__main__':
     emergency_stop_thread = threading.Thread(target=emergency_stop_callback, args=(le,))
     emergency_stop_thread.start()
 
-    # TODO : CHANGE THIS TO YOUR NEEDS
-    # print("plotting trajectory")
-    # visu.visualize_gates(csv_file=gates_csv_file, target_traj=waypoints, close=False)
 
 
     print("Starting control")
@@ -358,8 +372,7 @@ if __name__ == '__main__':
 
         # Move 
         while waypoints:
-            # Get the current position of the drone from the log data
-            #log_data = le._lg_stab.data_received_cb  # Example of accessing log data
+            # Get the current position of the drone from le object
             current_position = [le.sensor_data['x'], le.sensor_data['y'], le.sensor_data['z'], le.sensor_data['yaw']]
             estimate_traj.append(current_position)
 
@@ -368,22 +381,21 @@ if __name__ == '__main__':
 
             if next_waypoint:
                 x, y, z, yaw = next_waypoint
-                #ticks = int(time_bwn_points / 0.1)  # Number of ticks to wait between points
-
                 #print("Moving to waypoint:", (x, y, z))
                 cf.commander.send_position_setpoint(x, y, z, yaw)
-                    
+
             else:
                 print("All waypoints reached.")
                 break
 
-        # Land
+        # Reach last point of the path
         for _ in range(20):
             current_position = [le.sensor_data['x'], le.sensor_data['y'], le.sensor_data['z'], le.sensor_data['yaw']]
             estimate_traj.append(current_position)
             cf.commander.send_position_setpoint(0, 0, height_takeoff, 0)
             time.sleep(0.1)
-
+        
+        # Land
         ticks = int(time_takeoff / 0.1)  # Number of ticks to wait between points
         ticks_per_height = ticks / height_takeoff
 
@@ -391,6 +403,7 @@ if __name__ == '__main__':
             cf.commander.send_hover_setpoint(0, 0, 0, (ticks - y) / ticks_per_height)
             time.sleep(0.1)
 
+        # Visualize the position estimations of the drone during the flight
         visu.visualize_gates(csv_file=gates_csv_file, close=False, estimate_traj=estimate_traj, show_estimate_traj=True)
 
         cf.commander.send_stop_setpoint()
