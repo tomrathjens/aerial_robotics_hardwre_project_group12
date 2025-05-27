@@ -65,7 +65,7 @@ gates_csv_file = r".\gates.csv"
 
 
 time_takeoff = 5 #time to take off in seconds
-height_takeoff = 1 #height of the drone
+height_takeoff = 1.2 #height of the drone
 
 pose_reached = 0.7 #distance to consider a waypoint as reached
 
